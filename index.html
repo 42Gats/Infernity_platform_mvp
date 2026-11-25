@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infernity — Gestionnaire de Run & Hub (D&D 5e)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        infernal: {
+                            900: '#0f0505',
+                            800: '#1a0808',
+                            700: '#2c1010',
+                            600: '#4a1515',
+                            500: '#7f1d1d',
+                            400: '#b91c1c',
+                            300: '#ef4444',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-infernal-900 text-stone-200 min-h-screen font-sans selection:bg-red-900 selection:text-white">
+
+    <!-- Header & Navigation -->
+    <header class="bg-infernal-800 border-b border-infernal-600 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-infernal-600 p-2.5 rounded-lg border border-red-500/30 text-red-400 shadow-inner">
+                    <i class="fa-solid fa-fire-flame-curved text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-wider text-white flex items-center gap-2">
+                        INFERNITY <span class="text-xs px-2 py-0.5 rounded bg-red-900/80 text-red-200 border border-red-700">D&D 5e Roguelike</span>
+                    </h1>
+                    <p class="text-xs text-stone-400">Plateforme de Gestion & Portail Joueurs</p>
+                </div>
+            </div>
+
+            <!-- Onglets de Navigation -->
+            <div class="flex items-center space-x-2 bg-infernal-900 p-1.5 rounded-xl border border-infernal-700 overflow-x-auto">
+                <button onclick="switchTab('hub')" id="btn-hub" class="px-3 py-2 rounded-lg text-xs font-semibold transition-all bg-red-800 text-white shadow whitespace-nowrap">
+                    <i class="fa-solid fa-house-chimney mr-1.5"></i>Hub & Loadout
+                </button>
+                <button onclick="switchTab('codex')" id="btn-codex" class="px-3 py-2 rounded-lg text-xs font-semibold transition-all text-stone-400 hover:text-white hover:bg-infernal-700 whitespace-nowrap">
+                    <i class="fa-solid fa-book-skull mr-1.5"></i>Codex
+                </button>
+                <button onclick="switchTab('companions')" id="btn-companions" class="px-3 py-2 rounded-lg text-xs font-semibold transition-all text-stone-400 hover:text-white hover:bg-infernal-700 whitespace-nowrap">
+                    <i class="fa-solid fa-feather-pointed mr-1.5"></i>Compagnons
+                </button>
+                <button onclick="switchTab('quests')" id="btn-quests" class="px-3 py-2 rounded-lg text-xs font-semibold transition-all text-stone-400 hover:text-white hover:bg-infernal-700 whitespace-nowrap">
+                    <i class="fa-solid fa-scroll mr-1.5"></i>Quêtes
+                </button>
+                <button onclick="switchTab('mj')" id="btn-mj" class="px-3 py-2 rounded-lg text-xs font-semibold transition-all text-stone-400 hover:text-white hover:bg-infernal-700 border border-transparent hover:border-red-500/50 whitespace-nowrap">
+                    <i class="fa-solid fa-chess-board mr-1.5"></i>Outils MJ <span id="mj-lock-icon" class="ml-1 text-xs text-amber-400"><i class="fa-solid fa-lock"></i></span>
+                </button>
+            </div>
+
+            <!-- Affichage Pièces Infernales (Collectif) & Actions -->
+            <div class="flex items-center space-x-3">
+                <div class="bg-infernal-900 border border-amber-500/40 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                    <i class="fa-solid fa-coins text-amber-400"></i>
+                    <span class="text-xs text-stone-400 font-medium">PI :</span>
+                    <span id="global-coins-display" class="text-amber-400 font-black text-sm">50</span>
+                </div>
+                <button onclick="exportSave()" title="Exporter la sauvegarde JSON" class="bg-infernal-700 hover:bg-infernal-600 text-stone-300 p-2 rounded-lg text-xs font-medium border border-infernal-600 transition">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+                <label title="Importer une sauvegarde JSON" class="bg-infernal-700 hover:bg-infernal-600 text-stone-300 p-2 rounded-lg text-xs font-medium border border-infernal-600 transition cursor-pointer">
+                    <i class="fa-solid fa-upload"></i>
+                    <input type="file" id="import-file" accept=".json" onchange="importSave(event)" class="hidden">
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <!-- Modal d'authentification MJ -->
+    <div id="mj-auth-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-infernal-800 border border-red-900/60 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div class="text-center mb-4">
+                <div class="inline-flex p-3 rounded-full bg-red-900/40 text-red-400 mb-2 border border-red-700/50">
+                    <i class="fa-solid fa-user-shield text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Accès Réservé au Maître du Jeu</h3>
+                <p class="text-xs text-stone-400 mt-1">Entrez le code secret pour accéder au tableau de bord MJ.</p>
+            </div>
+            <form onsubmit="verifyMjPin(event)" class="space-y-4">
+                <div>
+                    <input type="password" id="mj-pin-input" placeholder="Code secret (défaut: MJ2024)" class="w-full bg-infernal-900 border border-infernal-600 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:border-red-500 text-center tracking-widest text-lg">
+                    <p id="mj-auth-error" class="text-xs text-red-400 mt-1.5 text-center hidden">Code erroné. Essayez "MJ2024".</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button type="button" onclick="closeMjAuth()" class="flex-1 bg-infernal-700 hover:bg-infernal-600 text-stone-300 py-2.5 rounded-xl text-sm font-medium transition">Annuler</button>
+                    <button type="submit" class="flex-1 bg-red-800 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-bold transition shadow">Entrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+
+        <!-- ================= SECTION 1: HUB PERMANENT & LOADOUT ================= -->
+        <section id="tab-hub" class="space-y-6">
+            <div class="bg-infernal-800/90 border border-infernal-700 rounded-2xl p-6 shadow-xl">
+                <div class="flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b border-infernal-700">
+                    <div>
+                        <h2 class="text-2xl font-black text-white flex items-center gap-2">
+                            <i class="fa-solid fa-dungeon text-red-500"></i> Le Hub d'Infernity (Améliorations Permanentes)
+                        </h2>
+                        <p class="text-sm text-stone-400">Consultez l'état du Hub, le coût des améliorations et préparez vos loadouts.</p>
+                    </div>
+                </div>
+
+                <!-- Grille des Améliorations Permanentes -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8" id="hub-upgrades-grid">
+                    <!-- Généré dynamiquement par JS -->
+                </div>
+
+                <!-- Simulateur de Loadout / Préparation de Run -->
+                <div class="bg-infernal-900 border border-infernal-700 rounded-xl p-6">
+                    <h3 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-red-500"></i> Simulateur de Loadout avant Run
+                    </h3>
+                    <p class="text-xs text-stone-400 mb-4">Sélectionnez vos artefacts (sacrifiés au préalable) et passifs (achetés définitivement au Hub).</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Artefacts sélectionnés -->
+                        <div class="bg-infernal-800 p-4 rounded-xl border border-infernal-700">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-ring text-purple-400"></i> Artefacts de Départ
+                                </h4>
+                                <span class="text-xs bg-infernal-700 px-2.5 py-1 rounded text-stone-300"><span id="selected-artifacts-count">0</span> / <span id="max-artifact-slots-label">1</span> emplacements</span>
+                            </div>
+                            <div id="loadout-artifacts-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                <!-- Rempli dynamiquement -->
+                            </div>
+                        </div>
+
+                        <!-- Passifs sélectionnés -->
+                        <div class="bg-infernal-800 p-4 rounded-xl border border-infernal-700">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="font-bold text-sm text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-feather text-blue-400"></i> Passifs de Départ
+                                </h4>
+                                <span class="text-xs bg-infernal-700 px-2.5 py-1 rounded text-stone-300"><span id="selected-passives-cost">0</span> / <span id="max-passive-budget-label">3</span> points</span>
+                            </div>
+                            <div id="loadout-passives-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                <!-- Rempli dynamiquement -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= SECTION 2: CODEX (ARTEFACTS & PASSIFS) ================= -->
+        <section id="tab-codex" class="space-y-6 hidden">
+            <div class="bg-infernal-800/90 border border-infernal-700 rounded-2xl p-6 shadow-xl">
+                <div class="flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b border-infernal-700">
+                    <div>
+                        <h2 class="text-2xl font-black text-white flex items-center gap-2">
+                            <i class="fa-solid fa-book-skull text-red-500"></i> Codex d'Infernity
+                        </h2>
+                        <p class="text-sm text-stone-400">Catalogue officiel complet (descriptions exactes issues des codex markdown).</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select id="codex-type-filter" onchange="renderCodex()" class="bg-infernal-900 border border-infernal-600 rounded-xl px-4 py-2 text-sm text-stone-200 focus:outline-none focus:border-red-500">
+                            <option value="artifacts">Artefacts</option>
+                            <option value="passives">Passifs</option>
+                        </select>
+                        <select id="codex-rarity-filter" onchange="renderCodex()" class="bg-infernal-900 border border-infernal-600 rounded-xl px-4 py-2 text-sm text-stone-200 focus:outline-none focus:border-red-500">
+                            <option value="all">Toutes les raretés</option>
+                            <option value="Commun">Commun</option>
+                            <option value="Peu commun">Peu commun</option>
+                            <option value="Rare">Rare</option>
+                            <option value="Épique">Épique</option>
+                            <option value="Légendaire">Légendaire</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Liste du Codex -->
+                <div id="codex-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Rempli par JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 3: COMPAGNONS ================= -->
+        <section id="tab-companions" class="space-y-6 hidden">
+            <div class="bg-infernal-800/90 border border-infernal-700 rounded-2xl p-6 shadow-xl">
+                <div class="mb-6 pb-4 border-b border-infernal-700">
+                    <h2 class="text-2xl font-black text-white flex items-center gap-2">
+                        <i class="fa-solid fa-feather-pointed text-amber-500"></i> Camp des Compagnons
+                    </h2>
+                    <p class="text-sm text-stone-400">Compagnons découverts et améliorations de camps.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="companions-grid">
+                    <!-- Rempli par JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 4: QUÊTES ================= -->
+        <section id="tab-quests" class="space-y-6 hidden">
+            <div class="bg-infernal-800/90 border border-infernal-700 rounded-2xl p-6 shadow-xl">
+                <div class="flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b border-infernal-700">
+                    <div>
+                        <h2 class="text-2xl font-black text-white flex items-center gap-2">
+                            <i class="fa-solid fa-scroll text-amber-500"></i> Registre des Quêtes Collectives de la Run
+                        </h2>
+                        <p class="text-sm text-stone-400">Les 5 quêtes actives pour la run en cours (tirées par le MJ avec au moins 1 Facile, 1 Moyenne, 1 Difficile).</p>
+                    </div>
+                    <div id="mj-quest-draw-btn-container">
+                        <!-- Bouton de tirage MJ si mode MJ actif -->
+                    </div>
+                </div>
+
+                <div id="active-quests-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Rempli par JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 5: OUTILS MJ ================= -->
+        <section id="tab-mj" class="space-y-6 hidden">
+            <div class="bg-infernal-800/90 border border-red-900/50 rounded-2xl p-6 shadow-xl">
+                <div class="flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b border-infernal-700">
+                    <div>
+                        <h2 class="text-2xl font-black text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chess-board text-red-500"></i> Tableau de Bord Maître du Jeu
+                        </h2>
+                        <p class="text-sm text-stone-400">Gérez l'économie (PI), le tirage des 5 quêtes de run, les sacrifices et les compagnons.</p>
+                    </div>
+                    <button onclick="lockMj()" class="bg-infernal-700 hover:bg-infernal-600 text-amber-400 px-3 py-2 rounded-xl text-xs font-semibold border border-infernal-600 flex items-center gap-2">
+                        <i class="fa-solid fa-lock"></i> Verrouiller la vue MJ
+                    </button>
+                </div>
+
+                <!-- Gestionnaire de Pièces Infernales (PI) -->
+                <div class="bg-infernal-900 border border-infernal-700 rounded-xl p-5 mb-6 flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-coins text-amber-400"></i> Trésor Collectif (Pièces Infernales)
+                        </h3>
+                        <p class="text-xs text-stone-400">Modifiez le montant de PI des joueurs en cas de fin de run ou de quête réussie.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="adjustMjCoins(-10)" class="bg-red-900 hover:bg-red-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold">-10 PI</button>
+                        <button onclick="adjustMjCoins(-5)" class="bg-red-900/70 hover:bg-red-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold">-5 PI</button>
+                        <span id="mj-coins-value" class="text-amber-400 font-black text-lg px-3">50 PI</span>
+                        <button onclick="adjustMjCoins(5)" class="bg-emerald-950 hover:bg-emerald-900 text-emerald-300 px-3 py-1.5 rounded-lg text-xs font-bold">+5 PI</button>
+                        <button onclick="adjustMjCoins(10)" class="bg-emerald-950 hover:bg-emerald-900 text-emerald-300 px-3 py-1.5 rounded-lg text-xs font-bold">+10 PI</button>
+                        <button onclick="adjustMjCoins(50)" class="bg-emerald-900 hover:bg-emerald-800 text-emerald-200 px-3 py-1.5 rounded-lg text-xs font-bold">+50 PI</button>
+                    </div>
+                </div>
+
+                <!-- Outil Tirage des Quêtes de Run -->
+                <div class="bg-infernal-900 border border-infernal-700 rounded-xl p-5 mb-6">
+                    <div class="flex flex-wrap justify-between items-center gap-4 mb-3">
+                        <div>
+                            <h3 class="font-bold text-white text-base flex items-center gap-2">
+                                <i class="fa-solid fa-scroll text-amber-500"></i> Tirage des 5 Quêtes Collectives de la Run
+                            </h3>
+                            <p class="text-xs text-stone-400">Tire aléatoirement 5 quêtes garantissant au moins 1 Facile, 1 Moyenne et 1 Difficile.</p>
+                        </div>
+                        <button onclick="mjRollRunQuests()" class="bg-amber-700 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow transition flex items-center gap-2">
+                            <i class="fa-solid fa-dice"></i> Tirer les 5 Quêtes de Run
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grille de Validation MJ des Améliorations Hub -->
+                <div class="bg-infernal-900 border border-infernal-700 rounded-xl p-5 mb-6">
+                    <h3 class="font-bold text-white text-base mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-store text-red-400"></i> Validation des Améliorations Hub & Achats
+                    </h3>
+                    <p class="text-xs text-stone-400 mb-4">Le MJ peut ici augmenter ou réduire le niveau d'une amélioration permanente.</p>
+                    <div id="mj-hub-controls" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Rempli par JS -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Générateur de Donjon -->
+                    <div class="lg:col-span-2 bg-infernal-900 border border-infernal-700 rounded-xl p-5 flex flex-col justify-between">
+                        <div>
+                            <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+                                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                                    <i class="fa-solid fa-route text-red-400"></i> Générateur de Parcours (Étage 1 à 10)
+                                </h3>
+                                <div class="flex items-center gap-3">
+                                    <select id="dungeon-floor" class="bg-infernal-800 border border-infernal-600 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-red-500">
+                                        <option value="1">Étage 1</option>
+                                        <option value="2">Étage 2</option>
+                                        <option value="3">Étage 3</option>
+                                        <option value="4">Étage 4</option>
+                                        <option value="5">Étage 5</option>
+                                        <option value="6">Étage 6</option>
+                                        <option value="7">Étage 7</option>
+                                        <option value="8">Étage 8</option>
+                                        <option value="9">Étage 9</option>
+                                        <option value="10">Étage 10 (Boss Final)</option>
+                                    </select>
+                                    <button onclick="generateDungeon()" class="bg-red-800 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold shadow transition">
+                                        Générer l'Étage
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="dungeon-output" class="bg-infernal-800/80 border border-infernal-700 rounded-xl p-4 min-h-[300px] overflow-x-auto space-y-3">
+                            <div class="text-center text-stone-500 py-16 italic text-sm">
+                                Cliquez sur "Générer l'Étage" pour créer le parcours procédural.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tirage de Butin -->
+                    <div class="bg-infernal-900 border border-infernal-700 rounded-xl p-5 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-white text-base mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-gem text-amber-400"></i> Tirage de Butin Post-Combat
+                            </h3>
+                            <div class="space-y-3 mb-4">
+                                <div>
+                                    <label class="block text-xs text-stone-400 mb-1">Difficulté du combat :</label>
+                                    <select id="loot-difficulty" class="w-full bg-infernal-800 border border-infernal-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500">
+                                        <option value="Facile">Facile</option>
+                                        <option value="Moyen" selected>Moyen</option>
+                                        <option value="Difficile">Difficile</option>
+                                        <option value="Boss">Boss d'Étage</option>
+                                    </select>
+                                </div>
+                                <button onclick="rollLoot()" class="w-full bg-amber-700 hover:bg-amber-600 text-white py-2.5 rounded-lg text-sm font-bold shadow transition flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-dice text-lg"></i> Tirer un Artefact / Butin
+                                </button>
+                            </div>
+                        </div>
+                        <div id="loot-result" class="bg-infernal-800/80 border border-infernal-700 rounded-xl p-4 text-center min-h-[140px] flex flex-col items-center justify-center">
+                            <span class="text-xs text-stone-500 italic">Aucun tirage effectué.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-7xl mx-auto px-4 py-6 text-center text-xs text-stone-500 border-t border-infernal-800 mt-12">
+        Infernity — Système Roguelike D&D 5e (2024) • Plateforme Web Gratuite & Hébergée sur GitHub Pages
+    </footer>
+
+    <!-- JavaScript Application -->
+    <script>
+        // --- TOUS LES ARTEFACTS DU CODEX OFFICIEL ---
+        const ALL_ARTIFACTS = [
+            // Artefacts communs
+            { name: "Gantelet du bretteur", rarity: "Commun", category: "Offensif", effect: "+1 aux dégâts des attaques avec une épée (courte, longue, rapière, cimeterre, à deux mains)." },
+            { name: "Anneau du bûcheron", rarity: "Commun", category: "Offensif", effect: "+1 aux dégâts des attaques avec une hache." },
+            { name: "Brassard du marteleur", rarity: "Commun", category: "Offensif", effect: "+1 aux dégâts des attaques avec une masse, un marteau ou un fléau." },
+            { name: "Pointe du sentinelle", rarity: "Commun", category: "Offensif", effect: "+1 aux dégâts des attaques avec une lance ou une arme d'hast." },
+            { name: "Fourreau du coupe-jarret", rarity: "Commun", category: "Offensif", effect: "+1 aux dégâts des attaques avec une arme à propriété Finesse." },
+            { name: "Carquois du chasseur", rarity: "Commun", category: "Offensif", effect: "+1 aux dégâts des attaques avec un arc." },
+            { name: "Cordon de l'arbalétrier", rarity: "Commun", category: "Offensif", effect: "+1 aux dégâts des attaques avec une arbalète." },
+            { name: "Gants du pugiliste", rarity: "Commun", category: "Offensif", effect: "+2 aux dégâts des frappes à mains nues." },
+            { name: "Bandeau du duelliste", rarity: "Commun", category: "Offensif", effect: "+2 aux dégâts des attaques avec une arme de mêlée tenue à une main, si le porteur ne manie aucune autre arme ni de bouclier." },
+            { name: "Pierre à aiguiser éternelle", rarity: "Commun", category: "Offensif", effect: "Au début de chaque combat, la première attaque d'arme du porteur qui touche inflige 1d4 dégâts supplémentaires." },
+            { name: "Médaille du bourreau", rarity: "Commun", category: "Offensif", effect: "+2 aux dégâts de chaque attaque contre une créature qui a moins de la moitié de ses PV." },
+            { name: "Marque du traqueur", rarity: "Commun", category: "Offensif", effect: "+1 aux jets d'attaque contre une créature que le porteur a déjà touchée pendant ce combat." },
+            { name: "Étincelle de forge", rarity: "Commun", category: "Magique", effect: "+1 aux dégâts de feu infligés par le porteur (attaques et sorts), une fois par jet de dégâts." },
+            { name: "Cristal de givre", rarity: "Commun", category: "Magique", effect: "+1 aux dégâts de froid infligés par le porteur (attaques et sorts), une fois par jet de dégâts." },
+            { name: "Éclat d'orage", rarity: "Commun", category: "Magique", effect: "+1 aux dégâts de foudre ou de tonnerre infligés par le porteur, une fois par jet de dégâts." },
+            { name: "Poussière de tombe", rarity: "Commun", category: "Magique", effect: "+1 aux dégâts nécrotiques infligés par le porteur, une fois par jet de dégâts." },
+            { name: "Plume d'aube", rarity: "Commun", category: "Magique", effect: "+1 aux dégâts radiants infligés par le porteur, une fois par jet de dégâts." },
+            { name: "Baguette d'apprenti", rarity: "Commun", category: "Magique", effect: "+1 aux dégâts des sorts mineurs du porteur." },
+            { name: "Focaliseur de tilleul", rarity: "Commun", category: "Magique", effect: "+1 aux jets d'attaque de sort." },
+            { name: "Sceau de concentration", rarity: "Commun", category: "Magique", effect: "Une fois par combat, le porteur peut choisir de réussir automatiquement un jet de sauvegarde de Constitution pour maintenir sa concentration." },
+            { name: "Mouchoir de bénédiction", rarity: "Commun", category: "Magique", effect: "Les sorts de soin lancés par le porteur rendent un nombre de PV supplémentaires égal à son bonus de maîtrise à une cible de son choix." },
+            { name: "Sceau de l'enchanteur", rarity: "Commun", category: "Magique", effect: "+1 au DD des sorts des écoles d'Enchantement et d'Illusion." },
+            { name: "Page de grimoire", rarity: "Commun", category: "Magique", effect: "Une fois par étage, le porteur peut relancer un dé de dégâts d'un sort et conserver le nouveau résultat." },
+            { name: "Écu de bois renforcé", rarity: "Commun", category: "Défensif", effect: "+1 CA tant que le porteur manie un bouclier." },
+            { name: "Haubert rapiécé", rarity: "Commun", category: "Défensif", effect: "+1 CA tant que le porteur porte une armure légère." },
+            { name: "Plastron poli", rarity: "Commun", category: "Défensif", effect: "+1 CA tant que le porteur porte une armure intermédiaire." },
+            { name: "Cuirasse du vétéran", rarity: "Commun", category: "Défensif", effect: "+1 CA tant que le porteur porte une armure lourde." },
+            { name: "Amulette d'écorce", rarity: "Commun", category: "Défensif", effect: "+1 CA tant que le porteur ne porte ni armure ni bouclier." },
+            { name: "Talisman de vigueur", rarity: "Commun", category: "Défensif", effect: "+2 + niveau PV maximum." },
+            { name: "Ancre de navire", rarity: "Commun", category: "Défensif", effect: "Au premier round de chaque combat, le porteur gagne des PV temporaires égaux à 2 × son bonus de maîtrise. (Slay the Spire)" },
+            { name: "Anneau de granite", rarity: "Commun", category: "Défensif", effect: "+2 aux jets de sauvegarde de Force." },
+            { name: "Anneau de la brise", rarity: "Commun", category: "Défensif", effect: "Le porteur gagne la résistance aux dégâts de chute et ne subit jamais de dégâts supplémentaires en cas d'échec critique sur un jet de Dextérité." },
+            { name: "Anneau du chêne", rarity: "Commun", category: "Défensif", effect: "+2 aux jets de sauvegarde de Constitution." },
+            { name: "Anneau du sage", rarity: "Commun", category: "Défensif", effect: "+2 aux jets de sauvegarde d'Intelligence." },
+            { name: "Anneau de sérénité", rarity: "Commun", category: "Défensif", effect: "Le porteur est immunisé contre l'état Charmé et gagne un bonus de +1 aux tests de Perspicacité." },
+            { name: "Anneau de la flamme vive", rarity: "Commun", category: "Défensif", effect: "+2 aux jets de sauvegarde de Charisme." },
+            { name: "Bague de chance", rarity: "Commun", category: "Défensif", effect: "Une fois par étage, si le porteur obtient un échec à un jet de sauvegarde contre la mort, il peut le traiter directement comme une réussite." },
+            { name: "Cape de pèlerin", rarity: "Commun", category: "Défensif", effect: "+2 aux jets de sauvegarde contre les effets de zone (sorts et souffles)." },
+            { name: "Bottes de voyageur", rarity: "Commun", category: "Utilitaire", effect: "Le porteur ignore le terrain difficile naturel (boue, gravats, neige) et gagne +5 ft à sa vitesse de marche." },
+            { name: "Insigne d'éclaireur", rarity: "Commun", category: "Utilitaire", effect: "Au premier round de chaque combat, le porteur gagne l'avantage à son jet d'initiative et +10 ft de vitesse de mouvement." },
+            { name: "Lanterne de mineur", rarity: "Commun", category: "Utilitaire", effect: "Le porteur gagne la vision dans le noir (30 ft), ou +30 ft s'il la possède déjà." },
+            { name: "Loupe de l'enquêteur", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests d'Investigation." },
+            { name: "Longue-vue de pirate", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests de Perception." },
+            { name: "Corde du grimpeur", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests d'Athlétisme ; vitesse d'escalade égale à la vitesse de marche." },
+            { name: "Capuchon de brume", rarity: "Commun", category: "Utilitaire", effect: "Une fois par combat, le porteur peut utiliser son action Bonus pour se fondre dans les ombres, gagnant l'avantage à son prochain test de Discrétion." },
+            { name: "Gants de pickpocket", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests d'Escamotage." },
+            { name: "Médaillon de diplomate", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests de Persuasion." },
+            { name: "Masque du menteur", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests de Tromperie." },
+            { name: "Trousse de guérisseur", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests de Médecine." },
+            { name: "Boussole du pisteur", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests de Survie." },
+            { name: "Miroir de poche", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests de Perspicacité." },
+            { name: "Souliers d'acrobate", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests d'Acrobaties." },
+            { name: "Grimoire annoté", rarity: "Commun", category: "Utilitaire", effect: "+2 aux tests d'Arcanes." },
+            { name: "Haricot magique", rarity: "Commun", category: "Ressources", effect: "Une fois par étage, le porteur peut utiliser une action Bonus pour récupérer 1d8 + son niveau en PV. (Dragon Ball)" },
+            { name: "Gourde de randonneur", rarity: "Commun", category: "Ressources", effect: "Quand le porteur dépense un Dé de vie, il récupère des PV supplémentaires égaux à son bonus de maîtrise." },
+            { name: "Couverture de voyage", rarity: "Commun", category: "Ressources", effect: "À chaque utilisation d'un sanctuaire, le porteur récupère des PV supplémentaires égaux à son niveau." },
+            { name: "Antidote du colporteur", rarity: "Commun", category: "Ressources", effect: "Une fois par étage, le porteur peut utiliser une action Bonus pour mettre fin à l'état Empoisonné sur lui-même." },
+            { name: "Cocarde du vétéran", rarity: "Commun", category: "Hybride", effect: "+1 aux jets d'attaque et +1 CA tant que le porteur a plus de la moitié de ses PV." },
+            { name: "Épée courte +1", rarity: "Commun", category: "Offensif", effect: "Arme magique. +1 aux jets d'attaque et de dégâts. (Objet DnD)" },
+            { name: "Arc court +1", rarity: "Commun", category: "Offensif", effect: "Arme magique. +1 aux jets d'attaque et de dégâts avec cet arc. (Objet DnD)" },
+            { name: "Bouclier +1", rarity: "Commun", category: "Défensif", effect: "+1 CA supplémentaire en plus du bonus de base du bouclier. (Objet DnD)" },
+            { name: "Armure de cuir +1", rarity: "Commun", category: "Défensif", effect: "Armure légère magique. +1 CA. (Objet DnD)" },
+            { name: "Cotte de mailles +1", rarity: "Commun", category: "Défensif", effect: "Armure intermédiaire magique. +1 CA. (Objet DnD)" },
+            { name: "Pierre de soin", rarity: "Commun", category: "Ressources", effect: "Une fois par étage, par une action Bonus, le porteur récupère 1d6 PV." },
+            { name: "Anneau de protection", rarity: "Commun", category: "Défensif", effect: "+1 CA et +1 à tous les jets de sauvegarde. (Objet DnD)" },
+            { name: "Collier de résistance", rarity: "Commun", category: "Défensif", effect: "+1 à un jet de sauvegarde de son choix (défini à l'équipement). (Objet DnD)" },
+
+            // Artefacts peu communs
+            { name: "Collier de crocs", rarity: "Peu commun", category: "Offensif", effect: "Le porteur dispose d'une utilisation supplémentaire de Rage." },
+            { name: "Tambour de guerre", rarity: "Peu commun", category: "Offensif", effect: "Les dégâts de Rage du porteur augmentent de 1. Sans Rage, +1 aux dégâts de mêlée au premier round de chaque combat." },
+            { name: "Flûte de Pan", rarity: "Peu commun", category: "Ressources", effect: "Le porteur dispose d'une utilisation supplémentaire d'Inspiration bardique." },
+            { name: "Harpe de cuivre", rarity: "Peu commun", category: "Magique", effect: "Les dés d'Inspiration bardique accordés par le porteur ajoutent +2 au résultat." },
+            { name: "Symbole sacré gravé", rarity: "Peu commun", category: "Ressources", effect: "Le porteur dispose d'une utilisation supplémentaire de Canalisation de divinité." },
+            { name: "Cierge de lumière", rarity: "Peu commun", category: "Magique", effect: "Chaque sort de soin lancé par le porteur rend 1d6 PV supplémentaires à sa cible." },
+            { name: "Rameau de gui", rarity: "Peu commun", category: "Ressources", effect: "Le porteur dispose d'une utilisation supplémentaire de Forme sauvage." },
+            { name: "Graine d'ent", rarity: "Peu commun", category: "Défensif", effect: "Quand le porteur se transforme grâce à Forme sauvage, il gagne des PV temporaires égaux à son niveau." },
+            { name: "Fanion de commandant", rarity: "Peu commun", category: "Ressources", effect: "Le porteur dispose d'une utilisation supplémentaire de Second souffle, qui rend en plus des PV égaux à son niveau." },
+            { name: "Épée du maître d'armes", rarity: "Peu commun", category: "Offensif", effect: "Le porteur peut utiliser la propriété de Maîtrise d'un type d'arme supplémentaire de son choix (parmi ceux qu'il sait manier)." },
+            { name: "Perle de focalisation", rarity: "Peu commun", category: "Ressources", effect: "Une fois par étage, le porteur récupère 2 points de focalisation." },
+            { name: "Bandeau d'initié", rarity: "Peu commun", category: "Offensif", effect: "Une fois par tour, quand le porteur dépense un point de focalisation, sa prochaine frappe à mains nues du tour inflige 1d6 dégâts de force supplémentaires." },
+            { name: "Écusson d'aube", rarity: "Peu commun", category: "Offensif", effect: "Une fois par étage, quand le porteur utilise Châtiment divin, il inflige 1d8 dégâts radiants supplémentaires." },
+            { name: "Médaillon du serment", rarity: "Peu commun", category: "Défensif", effect: "Le rayon de l'aura du porteur augmente de 10 ft. Sans aura, il accorde +1 aux jets de sauvegarde des alliés à 10 ft ou moins." },
+            { name: "Cor du pisteur", rarity: "Peu commun", category: "Magique", effect: "Une fois par étage, le porteur peut lancer Marque du chasseur sans dépenser d'emplacement de sort." },
+            { name: "Carquois sans fond", rarity: "Peu commun", category: "Offensif", effect: "Les munitions du porteur ne sont plus comptées. La première attaque à distance de chaque tour inflige 1d4 dégâts supplémentaires." },
+            { name: "Cape de l'ombre", rarity: "Peu commun", category: "Offensif", effect: "La Frappe sournoise du porteur inflige 1d6 dégâts supplémentaires." },
+            { name: "Gants de velours", rarity: "Peu commun", category: "Utilitaire", effect: "Une fois par combat, le porteur peut effectuer l'action Se désengager gratuitement, sans dépenser d'action." },
+            { name: "Cristal de sang", rarity: "Peu commun", category: "Ressources", effect: "Le porteur gagne 2 points de sorcellerie supplémentaires." },
+            { name: "Sceau du pacte", rarity: "Peu commun", category: "Ressources", effect: "Une fois par étage, le porteur récupère un emplacement de pacte dépensé." },
+            { name: "Marque-page runique", rarity: "Peu commun", category: "Ressources", effect: "Une fois par étage, le porteur récupère un emplacement de sort dépensé de niveau 2 ou moins." },
+            { name: "Cœur du colosse", rarity: "Peu commun", category: "Défensif", effect: "+2 × niveau PV maximum." },
+            { name: "Lame ardente", rarity: "Peu commun", category: "Offensif", effect: "Une fois par tour, quand une attaque d'arme du porteur touche, elle inflige 1d6 dégâts de feu supplémentaires." },
+            { name: "Glace collante", rarity: "Peu commun", category: "Magique", effect: "Les sorts de froid du porteur réduisent de 10 ft la vitesse de leur cible jusqu'à la fin de son prochain tour." },
+            { name: "Cendre brûlante", rarity: "Peu commun", category: "Magique", effect: "Les sorts de feu du porteur font subir 1d4 dégâts de feu supplémentaires à leur cible au début de son prochain tour." },
+            { name: "Étincelle paralysante", rarity: "Peu commun", category: "Magique", effect: "Les sorts de foudre du porteur empêchent leur cible d'utiliser des réactions jusqu'au début de son prochain tour." },
+            { name: "Poussière d'oubli", rarity: "Peu commun", category: "Magique", effect: "Les sorts nécrotiques du porteur empêchent leur cible de récupérer des PV jusqu'à la fin de son prochain tour." },
+            { name: "Éclat de lumière", rarity: "Peu commun", category: "Magique", effect: "La cible d'un sort radiant du porteur a le désavantage à sa prochaine attaque avant la fin de son prochain tour." },
+            { name: "Bouclier réactif", rarity: "Peu commun", category: "Défensif", effect: "Une fois par combat, le porteur peut utiliser sa réaction pour gagner +2 CA contre une attaque avant que le jet ne soit effectué." },
+            { name: "Cape ondoyante", rarity: "Peu commun", category: "Défensif", effect: "Une fois par combat, le porteur peut utiliser sa réaction pour réduire les dégâts d'une attaque subie de 2 × son bonus de maîtrise." },
+            { name: "Pendentif du dernier souffle", rarity: "Peu commun", category: "Défensif", effect: "Une fois par étage, quand le porteur tombe à 0 PV, il se relève immédiatement avec 2 × son bonus de maîtrise PV." },
+            { name: "Médaille du chasseur de boss", rarity: "Peu commun", category: "Offensif", effect: "+1d6 dégâts à chaque attaque qui touche un boss." },
+            { name: "Anneau du chasseur de géants", rarity: "Peu commun", category: "Offensif", effect: "+1d4 dégâts à chaque attaque d'arme qui touche une créature de taille Grande ou supérieure." },
+            { name: "Broche du premier assaut", rarity: "Peu commun", category: "Offensif", effect: "Au premier round de chaque combat, la première attaque du porteur a l'avantage." },
+            { name: "Bague du sang-froid", rarity: "Peu commun", category: "Ressources", effect: "Une fois par tour, quand le porteur réduit une créature à 0 PV, il récupère un nombre de PV égal à son bonus de maîtrise." },
+            { name: "Collier de dents", rarity: "Peu commun", category: "Offensif", effect: "Quand le porteur réduit une créature à 0 PV, il gagne +1 aux jets d'attaque jusqu'à la fin de son prochain tour." },
+            { name: "Brassard du berserker", rarity: "Peu commun", category: "Offensif", effect: "Quand le porteur passe sous la moitié de ses PV, il gagne +2 aux jets de dégâts jusqu'à la fin du combat." },
+            { name: "Anneau de la lame jumelle", rarity: "Peu commun", category: "Offensif", effect: "Le porteur ajoute son modificateur de caractéristique aux dégâts de l'attaque supplémentaire de la propriété Légère." },
+            { name: "Bandeau de concentration", rarity: "Peu commun", category: "Offensif", effect: "Une fois par combat, le porteur peut ajouter 1d6 à un jet d'attaque après le d20 et avant de connaître le résultat." },
+            { name: "Fiole d'Estus", rarity: "Peu commun", category: "Ressources", effect: "Deux fois par étage, le porteur peut utiliser une action Bonus pour récupérer 2d6 + son niveau en PV. (Dark Souls)" },
+            { name: "Pain de voyage elfique", rarity: "Peu commun", category: "Ressources", effect: "Une fois par étage, le porteur peut utiliser une action pour récupérer un Dé de vie dépensé et 1d8 PV. (Le Seigneur des Anneaux)" },
+            { name: "Infusion de sang", rarity: "Peu commun", category: "Ressources", effect: "Quand le porteur réduit une créature à 0 PV, il gagne +1 PV maximum jusqu'à la fin de l'étage (maximum égal à son niveau). (Risk of Rain)" },
+            { name: "Bottes d'Hermès", rarity: "Peu commun", category: "Utilitaire", effect: "Au premier round de chaque combat, +20 ft de vitesse et le porteur ne provoque pas d'attaques d'opportunité. (Hades)" },
+            { name: "Bénédiction de Zeus", rarity: "Peu commun", category: "Offensif", effect: "Une fois par tour, quand le porteur touche une créature, une autre créature hostile à 15 ft de la cible subit 1d6 dégâts de foudre. (Hades)" },
+            { name: "Bénédiction de Poséidon", rarity: "Peu commun", category: "Offensif", effect: "Une fois par tour, quand le porteur touche en mêlée, il inflige 1d4 dégâts de tonnerre supplémentaires et repousse de 10 ft la cible si elle est de taille Grande ou inférieure. (Hades)" },
+            { name: "Bénédiction d'Aphrodite", rarity: "Peu commun", category: "Offensif", effect: "Une fois par combat, quand le porteur touche une créature, celle-ci subit −2 à ses jets d'attaque jusqu'à la fin de son prochain tour. (Hades)" },
+            { name: "Bénédiction d'Artémis", rarity: "Peu commun", category: "Offensif", effect: "Les attaques à distance du porteur infligent un coup critique sur un 19 ou un 20 naturel. (Hades)" },
+            { name: "Bénédiction de Dionysos", rarity: "Peu commun", category: "Offensif", effect: "Une fois par combat, quand le porteur touche une créature, celle-ci est Empoisonnée jusqu'à la fin de son prochain tour, sans jet de sauvegarde. (Hades)" },
+            { name: "Mod Redirection", rarity: "Peu commun", category: "Défensif", effect: "Au début de chaque combat, le porteur gagne des PV temporaires égaux à 2 × son niveau. (Warframe)" },
+            { name: "Mod Rationalisation", rarity: "Peu commun", category: "Ressources", effect: "Une fois par étage, le porteur récupère une utilisation d'une capacité à usage limité de son choix (niveau de capacité ou emplacement de sort de niveau 1 maximum). (Warframe)" },
+            { name: "Plume d'encre", rarity: "Peu commun", category: "Offensif", effect: "La troisième attaque d'arme du porteur qui touche pendant chaque combat inflige 2d6 dégâts supplémentaires. (Slay the Spire)" },
+            { name: "Orichalque", rarity: "Peu commun", category: "Défensif", effect: "Au début de chaque tour du porteur en combat, s'il n'a aucun PV temporaire, il gagne des PV temporaires égaux à son bonus de maîtrise. (Slay the Spire)" },
+            { name: "Service à thé ancien", rarity: "Peu commun", category: "Utilitaire", effect: "Au premier combat suivant l'utilisation d'un sanctuaire, le porteur gagne +2 à l'initiative et une Inspiration héroïque. (Slay the Spire)" },
+            { name: "Réceptacle de cœur", rarity: "Peu commun", category: "Défensif", effect: "+niveau PV maximum, et le porteur récupère 1 PV au début de chacun de ses tours tant qu'il a au moins 1 PV. (The Legend of Zelda)" },
+            { name: "Anneau du loup de fer", rarity: "Peu commun", category: "Défensif", effect: "+1 CA contre les attaques d'opportunité et +2 aux jets de sauvegarde contre les états À terre et Entravé. (Dark Souls)" },
+            { name: "Épée longue +2", rarity: "Peu commun", category: "Offensif", effect: "Arme magique. +2 aux jets d'attaque et de dégâts. (Objet DnD)" },
+            { name: "Cape de protection", rarity: "Peu commun", category: "Défensif", effect: "+1 CA et +1 à tous les jets de sauvegarde tant que le porteur ne porte pas d'armure. (Objet DnD)" },
+            { name: "Bottes elfiques", rarity: "Peu commun", category: "Utilitaire", effect: "Le porteur ne laisse aucune trace et a l'avantage aux tests de Discrétion liés au mouvement. (Objet DnD)" },
+            { name: "Gants de force de l'ogre", rarity: "Peu commun", category: "Offensif", effect: "La Force du porteur devient 19 (sans effet si elle est déjà supérieure). (Objet DnD)" },
+
+            // ─── RARES ───
+            { name: "Lame du volcan", rarity: "Rare", category: "Offensif", effect: "Une fois par tour, le jet de dégâts de feu du porteur est doublé s'il vise une créature qui n'a pas tous ses PV." },
+            { name: "Sceptre du blizzard", rarity: "Rare", category: "Magique", effect: "Une fois par tour, au premier round de chaque combat, le jet de dégâts de froid du porteur est doublé." },
+            { name: "Gantelet de la tempête", rarity: "Rare", category: "Offensif", effect: "Une fois par tour, lors d'un combat difficile ou de boss, le jet de dégâts de foudre ou de tonnerre du porteur est doublé." },
+            { name: "Fiole de vitriol", rarity: "Rare", category: "Magique", effect: "Une fois par tour, le jet de dégâts d'acide du porteur est doublé s'il vise une créature dont la CA est de 17 ou plus." },
+            { name: "Dard de la vouivre", rarity: "Rare", category: "Offensif", effect: "Une fois par tour, le jet de dégâts de poison du porteur est doublé s'il vise un boss." },
+            { name: "Faux du moissonneur", rarity: "Rare", category: "Offensif", effect: "Une fois par tour, le jet de dégâts nécrotiques du porteur est doublé s'il vise une créature qui a moins de la moitié de ses PV." },
+            { name: "Marteau de l'aurore", rarity: "Rare", category: "Offensif", effect: "Une fois par tour, le jet de dégâts radiants du porteur est doublé s'il vise un fiélon, un mort-vivant ou une aberration." },
+            { name: "Poing de force pure", rarity: "Rare", category: "Offensif", effect: "Une fois par tour, tant que le porteur a moins de la moitié de ses PV, son jet de dégâts de force est doublé." },
+            { name: "Couronne de l'esprit brisé", rarity: "Rare", category: "Magique", effect: "Une fois par tour, le jet de dégâts psychiques du porteur est doublé s'il vise une créature Charmée, Effrayée ou Neutralisée." },
+            { name: "Gantelets d'adamant", rarity: "Rare", category: "Offensif", effect: "Les attaques d'arme du porteur ignorent complètement les résistances et les immunités aux dégâts contondants, perforants et tranchants." },
+            { name: "Rune de percée élémentaire", rarity: "Rare", category: "Magique", effect: "Les dégâts de feu, de froid, de foudre et de tonnerre infligés par le porteur ignorent les résistances (pas les immunités)." },
+            { name: "Rune de percée occulte", rarity: "Rare", category: "Magique", effect: "Les dégâts nécrotiques, radiants, de force et psychiques infligés par le porteur ignorent les résistances (pas les immunités)." },
+            { name: "Fiole d'acide pur", rarity: "Rare", category: "Offensif", effect: "Les dégâts d'acide et de poison infligés par le porteur ignorent les résistances, et une immunité au poison est traitée comme une simple résistance." },
+            { name: "Écusson du chevalier", rarity: "Rare", category: "Ressources", effect: "Le porteur gagne Second souffle : deux fois par étage, action Bonus pour récupérer 1d10 + son niveau en PV." },
+            { name: "Cape du roublard", rarity: "Rare", category: "Utilitaire", effect: "Le porteur peut utiliser son action Bonus pour effectuer l'action Se précipiter, Se désengager ou Se cacher (Ruse)." },
+            { name: "Sandales du vent", rarity: "Rare", category: "Utilitaire", effect: "Le porteur peut utiliser son action Bonus pour se précipiter ou se désengager, et ses sauts sont doublés en distance (Pas du vent)." },
+            { name: "Gri-gri du barbare", rarity: "Rare", category: "Défensif", effect: "Avantage aux jets d'initiative et aux jets de sauvegarde de Dextérité contre les effets que le porteur peut voir (Sens du danger)." },
+            { name: "Chapelet du paladin", rarity: "Rare", category: "Ressources", effect: "Le porteur dispose d'une réserve de soins égale à 5 × son niveau, reconstituée à chaque étage. Par une action, il touche une créature et lui rend autant de PV qu'il le souhaite (Imposition des mains)." },
+            { name: "Pendentif du clerc", rarity: "Rare", category: "Magique", effect: "Une fois par combat, le porteur peut utiliser une action : les morts-vivants et fiélons à 30 ft doivent réussir un jet de sauvegarde de Sagesse ou être Effrayés pendant 1 minute (DD 8 + bonus de maîtrise + modificateur d'incantation)." },
+            { name: "Cor du rôdeur", rarity: "Rare", category: "Offensif", effect: "Une fois par combat, le porteur désigne une créature comme son ennemi juré : avantage aux tests de Perception et de Survie à son sujet et +1 × son bonus de maîtrise aux dégâts contre elle." },
+            { name: "Sceau de métamagie", rarity: "Rare", category: "Magique", effect: "Une fois par étage chacun, le porteur peut accélérer un sort de niveau 3 ou moins (action Bonus) et jumeler un sort de niveau 3 ou moins (une seconde cible)." },
+            { name: "Bague de l'occultiste", rarity: "Rare", category: "Magique", effect: "Le porteur connaît Décharge occulte (1d10 force) et ajoute son modificateur d'incantation aux dégâts de chaque rayon." },
+            { name: "Grimoire du magicien", rarity: "Rare", category: "Défensif", effect: "Quand le porteur lance un sort avec un emplacement, il gagne des PV temporaires égaux à 3 × le niveau de l'emplacement dépensé (Barrière arcanique)." },
+            { name: "Archet du barde", rarity: "Rare", category: "Utilitaire", effect: "Le porteur ajoute la moitié de son bonus de maîtrise (arrondi inférieur) aux tests de caractéristique sans maîtrise, et double son bonus de maîtrise pour deux compétences maîtrisées (Polyvalence, Expertise)." },
+            { name: "Totem de l'ours", rarity: "Rare", category: "Défensif", effect: "Une fois par combat, le porteur peut utiliser une action Bonus : pendant 1 minute, il résiste aux dégâts contondants, perforants et tranchants." },
+            { name: "Gantelets du fendeur", rarity: "Rare", category: "Offensif", effect: "Une fois par tour, quand le porteur réduit une créature à 0 PV avec une attaque de mêlée, il peut effectuer une attaque supplémentaire contre une autre créature à portée." },
+            { name: "Arc de la forêt dorée", rarity: "Rare", category: "Offensif", effect: "Si le porteur ne s'est pas déplacé pendant son tour, il peut effectuer une attaque à distance supplémentaire en action Bonus. (Le Seigneur des Anneaux)" },
+            { name: "Lames sœurs", rarity: "Rare", category: "Offensif", effect: "Quand le porteur touche la même créature avec deux attaques d'arme dans un même tour, il peut effectuer une troisième attaque contre elle." },
+            { name: "Brassard de représailles", rarity: "Rare", category: "Offensif", effect: "Quand une créature touche le porteur avec une attaque de mêlée, il peut utiliser sa réaction pour effectuer une attaque d'arme contre elle, avec avantage." },
+            { name: "Sabre laser", rarity: "Rare", category: "Hybride", effect: "Les attaques d'arme du porteur infligent 1d8 dégâts de force supplémentaires. En réaction, il peut dévier une attaque à distance : dégâts réduits de 1d10 + son niveau ; à 0, il renvoie l'attaque sur une créature à 60 ft. (Star Wars)" },
+            { name: "Bouclier Holtzman", rarity: "Rare", category: "Défensif", effect: "Les attaques à distance et les sorts d'attaque qui ciblent le porteur ont le désavantage. En contrepartie, le porteur a le désavantage à ses propres attaques à distance. (Dune)" },
+            { name: "Bouclier hylien", rarity: "Rare", category: "Défensif", effect: "Une fois par round, le porteur peut utiliser sa réaction pour gagner +5 CA contre une attaque à distance ou un sort d'attaque ; si elle manque, elle est renvoyée vers son auteur. (The Legend of Zelda)" },
+            { name: "Anneau de Havel", rarity: "Rare", category: "Défensif", effect: "Tant que le porteur porte une armure lourde, il résiste aux dégâts contondants, perforants et tranchants non magiques et sa vitesse n'est pas réduite par l'armure. (Dark Souls)" },
+            { name: "Cape d'invisibilité", rarity: "Rare", category: "Utilitaire", effect: "Une fois par étage, le porteur peut utiliser une action pour devenir Invisible pendant 1 minute ou jusqu'à ce qu'il attaque ou lance un sort. (Harry Potter)" },
+            { name: "Cotte de mithril", rarity: "Rare", category: "Défensif", effect: "+1 CA avec une armure, aucun désavantage en Discrétion. Une fois par étage, un coup critique contre le porteur est traité comme une touche normale. (Le Seigneur des Anneaux)" },
+            { name: "Palantír", rarity: "Rare", category: "Utilitaire", effect: "Au début de chaque étage, le porteur connaît le type (facile, moyen, difficile ou boss) du prochain combat. (Le Seigneur des Anneaux)" },
+            { name: "Toison d'or", rarity: "Rare", category: "Ressources", effect: "Une fois par étage, le porteur peut utiliser une action pour rendre 3d8 + son niveau en PV à lui-même et aux alliés à 30 ft. (Percy Jackson)" },
+            { name: "Queue de phénix", rarity: "Rare", category: "Ressources", effect: "Une fois par étage, le porteur peut utiliser une action Bonus pour relever un allié à 0 PV situé à 30 ft ou moins avec 2d8 + son niveau PV. (Final Fantasy)" },
+            { name: "Anaklusmos", rarity: "Rare", category: "Hybride", effect: "Les attaques d'arme du porteur infligent 1d6 dégâts radiants supplémentaires aux morts-vivants et aux fiélons. Si l'arme est perdue ou lâchée, elle revient en main par une action Bonus. (Percy Jackson)" },
+            { name: "Lame d'alerte", rarity: "Rare", category: "Utilitaire", effect: "Le porteur ne peut pas être surpris et gagne +4 aux jets d'initiative. Une fois par combat, il a l'avantage à ses jets d'attaque jusqu'à la fin de son premier tour. (Le Seigneur des Anneaux)" },
+            { name: "Shikai", rarity: "Rare", category: "Transformation", effect: "Une fois par étage, le porteur peut utiliser une action Bonus : jusqu'à la fin du combat, son arme inflige 1d8 dégâts supplémentaires d'un type choisi (feu, froid, foudre ou nécrotique). (Bleach)" },
+            { name: "Côtes de Susanoo", rarity: "Rare", category: "Défensif", effect: "Au début de chaque combat, le porteur gagne des PV temporaires égaux à 3 × son niveau. (Naruto)" },
+            { name: "Fruit du caoutchouc", rarity: "Rare", category: "Défensif", effect: "Consommable. En mangeant ce fruit, le porteur résiste aux dégâts de foudre et aux dégâts contondants ; sa portée de mêlée augmente de 5 ft. L'effet est permanent. Drawback : le porteur ne sait pas nager (vitesse de nage 0 s'il en avait une). (One Piece)" },
+            { name: "Fruit de la flamme", rarity: "Rare", category: "Magique", effect: "Consommable. En mangeant ce fruit, le porteur résiste aux dégâts de feu. Une fois par combat, par une action, les créatures à 15 ft de lui subissent 3d6 dégâts de feu (Dextérité pour moitié). L'effet est permanent. Drawback : le porteur ne sait pas nager. (One Piece)" },
+            { name: "Haki de l'armement", rarity: "Rare", category: "Offensif", effect: "Les attaques d'arme du porteur sont considérées comme magiques, peuvent toucher les créatures intangibles et infligent 1d4 dégâts de force supplémentaires. (One Piece)" },
+            { name: "Haki de l'observation", rarity: "Rare", category: "Défensif", effect: "Une fois par round, quand une créature cible le porteur avec une attaque, il peut utiliser sa réaction pour lui imposer le désavantage. (One Piece)" },
+            { name: "Étincelle noire", rarity: "Rare", category: "Offensif", effect: "Une fois par étage, une attaque du porteur qui touche est un coup critique et inflige 2d10 dégâts de force supplémentaires. (Jujutsu Kaisen)" },
+            { name: "Poing spectral", rarity: "Rare", category: "Hybride", effect: "Les frappes à mains nues du porteur ont une allonge de 10 ft et infligent 1d6 dégâts de force supplémentaires. (JoJo's Bizarre Adventure)" },
+            { name: "Sharingan", rarity: "Rare", category: "Défensif", effect: "Une fois par combat, quand une créature touche le porteur, il peut utiliser sa réaction pour forcer l'attaquant à relancer l'attaque avec le désavantage. (Naruto)" },
+            { name: "Poing Jajanken", rarity: "Rare", category: "Offensif", effect: "Une fois par étage, le porteur peut se concentrer pendant une action : sa prochaine attaque de mêlée avant la fin de son prochain tour inflige 5d10 dégâts de force supplémentaires. (Hunter x Hunter)" },
+            { name: "Épée Buster", rarity: "Rare", category: "Offensif", effect: "Quand le porteur subit en une fois des dégâts égaux à au moins 25 % de ses PV maximum, sa prochaine attaque d'arme inflige 2d10 dégâts supplémentaires. (Final Fantasy)" },
+            { name: "Rebellion", rarity: "Rare", category: "Offensif", effect: "Chaque attaque qui touche la même créature dans un même tour inflige 1d4 dégâts supplémentaires de plus que la précédente (1d4, 2d4, 3d4…). (Devil May Cry)" },
+            { name: "Pistolets jumeaux", rarity: "Rare", category: "Offensif", effect: "Le porteur peut attaquer avec deux armes à distance Légères comme avec deux armes de mêlée Légères et n'a pas de désavantage à attaquer à distance au corps à corps. (Devil May Cry)" },
+            { name: "Cœur d'âme", rarity: "Rare", category: "Défensif", effect: "Au début de chaque étage, le porteur gagne des PV temporaires égaux à 3 × son niveau, qui persistent jusqu'à épuisement. (The Binding of Isaac)" },
+            { name: "Bandolier", rarity: "Rare", category: "Offensif", effect: "Chaque créature que le porteur réduit à 0 PV charge l'artefact (maximum 5). Sa prochaine attaque qui touche consomme les charges et inflige 1d4 dégâts supplémentaires par charge. (Risk of Rain)" },
+            { name: "Bénédiction d'Arès", rarity: "Rare", category: "Offensif", effect: "Une fois par combat, quand le porteur touche une créature, celle-ci est condamnée : à la fin de son prochain tour, elle subit 3d10 dégâts nécrotiques. (Hades)" },
+            { name: "Bénédiction d'Athéna", rarity: "Rare", category: "Défensif", effect: "Une fois par round, le porteur peut utiliser sa réaction pour réduire de 1d10 + son bonus de maîtrise les dégâts d'une attaque qui le touche. (Hades)" },
+            { name: "Bénédiction d'Apollon", rarity: "Rare", category: "Offensif", effect: "Une fois par combat, quand le porteur touche une créature, celle-ci subit 1d6 dégâts radiants supplémentaires et est Aveuglée jusqu'à la fin de son prochain tour. (Hades)" },
+            { name: "Bottes de Pégase", rarity: "Rare", category: "Utilitaire", effect: "+30 ft de vitesse, le terrain difficile ne ralentit pas le porteur et ses déplacements ne provoquent pas d'attaques d'opportunité. (The Legend of Zelda)" },
+            { name: "Épée de légende", rarity: "Rare", category: "Hybride", effect: "Les attaques d'arme du porteur infligent 1d8 dégâts radiants supplémentaires aux fiélons et aux morts-vivants. Une fois par étage, il lance un faisceau d'épée : attaque à distance à 60 ft, 4d8 dégâts radiants. (The Legend of Zelda)" },
+            { name: "Cape de lévitation", rarity: "Rare", category: "Utilitaire", effect: "Une fois par combat, le porteur peut voler pendant 1 minute avec une vitesse de vol égale à sa vitesse de marche. (Doctor Strange)" },
+            { name: "Anneau de transfert", rarity: "Rare", category: "Utilitaire", effect: "Une fois par combat, le porteur peut utiliser une action Bonus pour se téléporter jusqu'à 40 ft dans un espace inoccupé visible. (Doctor Strange)" },
+            { name: "Lames enchaînées", rarity: "Rare", category: "Offensif", effect: "La portée de mêlée du porteur augmente de 10 ft. Une fois par tour, quand il touche, il peut attirer la cible à 5 ft de lui (Force, DD 8 + bonus de maîtrise + modificateur de Force, sinon attirée). (God of War)" },
+            { name: "Épée vorpale", rarity: "Rare", category: "Offensif", effect: "+3 aux jets d'attaque et de dégâts. Sur un 20 naturel contre une créature avec une tête, elle est décapitée (immunisées : les créatures sans tête, les boss). (Objet DnD)" },
+            { name: "Hache du berserker", rarity: "Rare", category: "Hybride", effect: "+2 aux jets d'attaque et de dégâts. Quand le porteur tue une créature, il peut continuer à frapper en action Bonus jusqu'à ce qu'il manque ou qu'il n'y ait plus de cible à 5 ft. Drawback : au début de chaque combat, le porteur doit réussir un jet de Sagesse DD 15 ou être contraint d'attaquer la créature la plus proche (alliés inclus) à son premier tour. (Objet DnD)" },
+            { name: "Armure d'écailles de dragon", rarity: "Rare", category: "Défensif", effect: "+1 CA. Le porteur résiste à un type de dégâts selon la couleur des écailles (feu, froid, foudre, acide ou poison, défini à l'équipement). (Objet DnD)" },
+            { name: "Fléau de disruption", rarity: "Rare", category: "Offensif", effect: "+2 aux jets d'attaque et de dégâts. Sur un 20 naturel contre un mort-vivant ou un fiélon, la cible doit réussir un jet de Constitution DD 17 ou être détruite. (Objet DnD)" },
+
+            // ─── ÉPIQUES ───
+            { name: "Gantelet de fougue", rarity: "Épique", category: "Transformation", effect: "Deux fois par étage, le porteur peut effectuer une action supplémentaire lors de son tour de combat. (Action Surge)" },
+            { name: "Totem du berserker", rarity: "Épique", category: "Transformation", effect: "Deux fois par étage, le porteur peut entrer en Rage par une action Bonus pendant 1 minute : avantage aux tests et sauvegardes de Force, +2 aux dégâts de mêlée (+3 au niveau 9, +4 au niveau 16), résistance aux dégâts contondants, perforants et tranchants. Impossible de lancer des sorts." },
+            { name: "Cape du chasseur nocturne", rarity: "Épique", category: "Offensif", effect: "Au premier round de chaque combat, le porteur gagne +10 ft de vitesse et une attaque supplémentaire avec l'action Attaquer, qui inflige 2d6 dégâts psychiques supplémentaires si elle touche (Dread Ambusher)." },
+            { name: "Totem de la bête", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, le porteur peut prendre la forme d'une bête de FP au plus égal à son niveau divisé par 3 (maximum 6) pendant 10 minutes. Il retrouve ses PV d'origine à la fin de la transformation (Forme sauvage)." },
+            { name: "Voile du maître roublard", rarity: "Épique", category: "Offensif", effect: "Le porteur peut infliger sa Frappe sournoise deux fois par tour, sur deux attaques différentes." },
+            { name: "Poing de l'éveillé", rarity: "Épique", category: "Offensif", effect: "Une fois par combat, quand le porteur touche une créature avec une frappe à mains nues, celle-ci doit réussir un jet de sauvegarde de Constitution (DD 8 + bonus de maîtrise + modificateur de Sagesse) ou être Étourdie jusqu'à la fin du prochain tour du porteur." },
+            { name: "Aura du chevalier", rarity: "Épique", category: "Défensif", effect: "Le porteur et les alliés à 10 ft ou moins ajoutent son bonus de maîtrise à leurs jets de sauvegarde et sont immunisés contre l'état Effrayé tant que le porteur est conscient." },
+            { name: "Étoile du paladin", rarity: "Épique", category: "Offensif", effect: "Trois fois par étage, quand le porteur touche avec une attaque d'arme, il inflige 2d8 dégâts radiants supplémentaires sans dépenser d'emplacement de sort (Châtiment divin)." },
+            { name: "Orbe de signature", rarity: "Épique", category: "Magique", effect: "Le porteur choisit deux sorts de niveau 3 qu'il connaît : il peut lancer chacun une fois par étage sans dépenser d'emplacement de sort." },
+            { name: "Cœur de l'ensorceleur", rarity: "Épique", category: "Ressources", effect: "Le porteur gagne 6 points de sorcellerie supplémentaires et, une fois par étage, en récupère 4." },
+            { name: "Sceau du pacte supérieur", rarity: "Épique", category: "Ressources", effect: "Après chaque combat, le porteur récupère tous ses emplacements de pacte dépensés." },
+            { name: "Livre des chants héroïques", rarity: "Épique", category: "Magique", effect: "Au début de chaque combat, le porteur récupère toutes ses utilisations d'Inspiration bardique, et ses alliés à 30 ft ont l'avantage aux jets de sauvegarde contre les états Effrayé et Charmé." },
+            { name: "Sceptre du clerc", rarity: "Épique", category: "Magique", effect: "Une fois par étage, le porteur peut lancer un sort de clerc de niveau 5 ou moins sans dépenser d'emplacement de sort (Intervention divine)." },
+            { name: "Lame du guerrier-mage", rarity: "Épique", category: "Hybride", effect: "Quand le porteur lance un sort avec une action, il peut effectuer une attaque d'arme avec une action Bonus." },
+            { name: "Aura du Super Saiyan", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, le porteur peut utiliser une action Bonus : pendant 1 minute, +2 CA, +20 ft de vitesse, +2 aux jets d'attaque et +1 × son bonus de maîtrise aux dégâts. À la fin, il subit 1 niveau d'Épuisement. (Dragon Ball)" },
+            { name: "Kaioken", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, le porteur a une attaque supplémentaire et inflige des dégâts doublés (dés), mais subit 1d10 dégâts non réductibles au début de chacun de ses tours. (Dragon Ball)" },
+            { name: "Sparda", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, le porteur peut utiliser une action Bonus pour entrer en forme démoniaque pendant 1 minute : +10 ft de vitesse, +5 ft de portée, résistance au feu, au froid et à la foudre, et il récupère un nombre de PV égal à son bonus de maîtrise au début de chacun de ses tours (Devil Trigger). (Devil May Cry)" },
+            { name: "Susanoo", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, une armure spectrale enveloppe le porteur : PV temporaires égaux à 5 × son niveau, +3 CA, +10 ft de portée, et ses attaques d'arme infligent 2d8 dégâts de force supplémentaires. (Naruto)" },
+            { name: "Parchemin du mont Myōboku", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, le porteur peut entrer en mode ermite pendant la durée d'un combat : il ajoute son bonus de maîtrise à ses jets d'attaque, de caractéristique et de sauvegarde, et gagne +2 CA. (Naruto)" },
+            { name: "Gear Second", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, la vitesse du porteur est doublée, il peut se précipiter par une action Bonus et dispose d'une attaque supplémentaire. (One Piece)" },
+            { name: "Temps de l'empereur", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, le porteur ajoute +4 aux jets d'attaque, de caractéristique et de sauvegarde ; à la fin, il subit 1 niveau d'Épuisement. (Hunter x Hunter)" },
+            { name: "Bankai", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, +2 aux jets d'attaque, +20 ft de vitesse, une attaque supplémentaire, et l'arme inflige 2d8 dégâts supplémentaires d'un type choisi. (Bleach)" },
+            { name: "Flux de Haki des rois", rarity: "Épique", category: "Offensif", effect: "Une fois par combat, les créatures hostiles non-boss à 60 ft du porteur dont les PV maximum sont inférieurs à 10 × son niveau perdent connaissance pendant 1 minute, ou jusqu'à ce qu'elles subissent des dégâts. (One Piece)" },
+            { name: "Domaine incomplet", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, le porteur crée une zone de 20 ft de rayon pendant 1 minute : les créatures hostiles à l'intérieur ont le désavantage à leurs jets d'attaque et le porteur l'avantage aux siens. (Jujutsu Kaisen)" },
+            { name: "Rinnegan partiel", rarity: "Épique", category: "Offensif", effect: "Une fois par combat, le porteur peut utiliser sa réaction ou une action pour repousser les créatures hostiles à 20 ft (Force, sinon 4d8 dégâts de force et repoussées de 40 ft) ou en attirer une à 5 ft de lui. (Naruto)" },
+            { name: "Marteau-tonnerre", rarity: "Épique", category: "Hybride", effect: "Les attaques d'arme du porteur infligent 2d6 dégâts de foudre supplémentaires. Lancé, l'arme a une portée de 60 ft et revient en main. Une fois par étage, il appelle la foudre : 8d8 dégâts de foudre à une créature visible à 120 ft. (Marvel)" },
+            { name: "Flamme de l'Ouest", rarity: "Épique", category: "Hybride", effect: "Les attaques d'arme du porteur infligent 2d6 dégâts de feu supplémentaires, et il est immunisé contre l'état Effrayé. Une fois par étage, les créatures hostiles à 30 ft doivent réussir un jet de sauvegarde de Sagesse ou être Effrayées pendant 1 minute. (Le Seigneur des Anneaux)" },
+            { name: "Casque de l'ombre", rarity: "Épique", category: "Défensif", effect: "Une fois par combat, le porteur peut utiliser une action Bonus pour devenir insaisissable jusqu'à la fin de son prochain tour : il ne peut être ciblé, ne subit aucun dégât et ne peut pas attaquer. (Percy Jackson)" },
+            { name: "Bouclier de vibranium", rarity: "Épique", category: "Hybride", effect: "+2 CA. Une fois par tour, attaque à distance à 60 ft avec le bouclier (ricochet sur jusqu'à 3 créatures) ; il revient en main. Une fois par round, réaction : réduire de 2d10 les dégâts d'une attaque à distance. (Marvel)" },
+            { name: "Grande Rune de Godrick", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, +2 à tous les jets d'attaque, de dégâts, de sauvegarde, de caractéristique et à la CA. (Elden Ring)" },
+            { name: "Grande Rune de Malenia", rarity: "Épique", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, le porteur récupère un nombre de PV égal à 25 % des dégâts qu'il inflige avec ses attaques d'arme. (Elden Ring)" },
+            { name: "Grande Rune de Rykard", rarity: "Épique", category: "Ressources", effect: "Une fois par tour, quand le porteur réduit une créature à 0 PV, il récupère 10 % de ses PV maximum + son bonus de maîtrise en PV. (Elden Ring)" },
+            { name: "Grande Rune de Radahn", rarity: "Épique", category: "Offensif", effect: "Une fois par étage, action Bonus : pendant 1 minute, la vitesse des créatures hostiles à 30 ft du porteur est réduite de moitié, sans jet de sauvegarde. (Elden Ring)" },
+            { name: "Grande Rune de Mohg", rarity: "Épique", category: "Offensif", effect: "Une fois par étage, le porteur peut sacrifier 25 % de ses PV actuels : jusqu'à la fin du combat, toutes ses attaques infligent 2d6 dégâts nécrotiques supplémentaires. (Elden Ring)" },
+            { name: "Grande Rune de Morgott", rarity: "Épique", category: "Défensif", effect: "+3 × niveau PV maximum et résistance aux dégâts de poison et nécrotiques. (Elden Ring)" },
+            { name: "Stand : Étoile d'argent", rarity: "Épique", category: "Offensif", effect: "Une fois par combat, par une action, le porteur effectue 5 frappes à mains nues contre une même créature à 10 ft (1d10 + modificateur de Force chacune, dégâts de force). (JoJo's Bizarre Adventure)" },
+            { name: "Fruit de la glace", rarity: "Épique", category: "Magique", effect: "Consommable. En mangeant ce fruit, le porteur résiste au froid. Une fois par combat, par une action, il libère un cône de 30 ft : 6d8 dégâts de froid (Constitution pour moitié). L'effet est permanent. Drawback : le porteur ne sait pas nager. (One Piece)" },
+            { name: "Fruit de la lumière", rarity: "Épique", category: "Hybride", effect: "Consommable. En mangeant ce fruit, une fois par étage, le porteur peut se déplacer instantanément jusqu'à 60 ft sans provoquer d'attaque d'opportunité et inflige 4d8 dégâts radiants aux créatures sur la trajectoire. L'effet est permanent. Drawback : le porteur ne sait pas nager. (One Piece)" },
+            { name: "Fruit de la foudre", rarity: "Épique", category: "Magique", effect: "Consommable. En mangeant ce fruit, le porteur résiste à la foudre. Une fois par combat, par une action, il libère une ligne de 60 ft : 6d10 dégâts de foudre (Dextérité pour moitié). L'effet est permanent. Drawback : le porteur ne sait pas nager. (One Piece)" },
+            { name: "Fruit du sable", rarity: "Épique", category: "Magique", effect: "Consommable. En mangeant ce fruit, une fois par combat, par une action, une tempête de sable de 20 ft de rayon à 60 ft aveugle les créatures qui échouent à un jet de Constitution pendant 1 minute. L'effet est permanent. Drawback : le porteur ne sait pas nager, et les attaques à base d'eau le blessent normalement (pas de résistance possible contre elles). (One Piece)" },
+            { name: "Contrat Nen", rarity: "Épique", category: "Transformation", effect: "Au début de chaque étage, le porteur prête serment de s'interdire un élément (ses réactions, ses actions Bonus ou la moitié de sa vitesse) : il gagne +2 aux jets d'attaque et 2 × son bonus de maîtrise aux dégâts jusqu'à la fin de l'étage. (Hunter x Hunter)" },
+            { name: "Chaîne de jugement", rarity: "Épique", category: "Magique", effect: "Une fois par combat, le porteur désigne une créature : tant qu'il se concentre (1 minute maximum), elle ne peut plus utiliser ses capacités spéciales, seulement attaquer et se déplacer. (Hunter x Hunter)" },
+            { name: "Kamehameha", rarity: "Épique", category: "Offensif", effect: "Une fois par étage, le porteur se concentre pendant une action puis libère une ligne de 120 ft : 12d10 dégâts de force (Dextérité pour moitié). (Dragon Ball)" },
+            { name: "Haricot de Senzu", rarity: "Épique", category: "Ressources", effect: "Une fois par étage, action Bonus : le porteur récupère tous ses PV, perd tous ses états préjudiciables et récupère tous ses Dés de vie dépensés. (Dragon Ball)" },
+            { name: "Soufre", rarity: "Épique", category: "Offensif", effect: "Une fois par combat, par une action, le porteur libère une ligne de 60 ft : 8d6 dégâts de feu (Dextérité pour moitié). (The Binding of Isaac)" },
+            { name: "Prescience d'épice", rarity: "Épique", category: "Utilitaire", effect: "Le porteur ne peut pas être surpris. Au premier round de chaque combat, il a l'avantage à toutes ses attaques et sauvegardes. (Dune)" },
+            { name: "Couronne du chasseur de rois", rarity: "Épique", category: "Offensif", effect: "+2d8 dégâts à chaque attaque contre un boss. Quand le boss a moins de la moitié de ses PV, ce bonus est doublé." },
+            { name: "Médaillon du survivant", rarity: "Épique", category: "Défensif", effect: "Une fois par étage, quand le porteur tombe à 0 PV, il se relève avec la moitié de ses PV maximum et est immunisé contre les dégâts jusqu'à la fin de son prochain tour." },
+            { name: "Anneau de l'archimage", rarity: "Épique", category: "Magique", effect: "Les dés de dégâts des sorts de niveau 3 ou plus lancés par le porteur ne peuvent pas donner un résultat inférieur à 3." },
+            { name: "Carquois du tireur parfait", rarity: "Épique", category: "Offensif", effect: "+2 aux jets d'attaque à distance, qui ignorent le couvert partiel et à trois-quarts. Une fois par combat, une attaque à distance touche automatiquement." },
+            { name: "Étendard de guerre", rarity: "Épique", category: "Hybride", effect: "Exception : au premier round de chaque combat, les alliés à 30 ft du porteur gagnent +1 × leur bonus de maîtrise aux dégâts. Le porteur gagne +2 CA tant que l'étendard est déployé (tout le combat)." },
+            { name: "Armure du juggernaut", rarity: "Épique", category: "Défensif", effect: "Les dégâts subis par le porteur sont réduits de 2 × son bonus de maîtrise (chaque attaque, sort ou effet, minimum 1 dégât)." },
+            { name: "Livre des morts", rarity: "Épique", category: "Magique", effect: "Une fois par combat, le porteur relève comme mort-vivant allié (1 minute) une créature non-boss tuée pendant ce combat ; elle utilise ses statistiques d'origine." },
+            { name: "Lame de l'assassin sacré", rarity: "Épique", category: "Offensif", effect: "Au premier round de chaque combat, le porteur a l'avantage aux attaques contre les créatures qui n'ont pas encore joué, et ses touches contre elles sont des coups critiques." },
+            { name: "Déluge de la tempête", rarity: "Épique", category: "Offensif", effect: "Une fois par combat, action Bonus : le porteur effectue trois frappes à mains nues contre une ou plusieurs créatures à 5 ft." },
+            { name: "Morsure du vampire", rarity: "Épique", category: "Hybride", effect: "Les attaques d'arme du porteur infligent 2d6 dégâts nécrotiques supplémentaires, et il récupère la moitié de ces dégâts en PV." },
+            { name: "Anneau des trois souhaits", rarity: "Épique", category: "Transformation", effect: "Contient 3 charges. Le porteur peut dépenser une charge pour lancer Souhait (Wish). Quand les 3 charges sont épuisées, l'anneau devient une bague ordinaire. (Objet DnD)" },
+            { name: "Armure de plates +3", rarity: "Épique", category: "Défensif", effect: "Armure lourde magique. CA 21. (Objet DnD)" },
+            { name: "Veste de Spiderman", rarity: "Épique", category: "Utilitaire", effect: "Le porteur gagne une vitesse d'escalade égale à sa vitesse de marche, peut marcher sur les plafonds, et ne peut pas être Entravé par des toiles ou des effets similaires. Une fois par combat, par une action Bonus, il projette une toile sur une créature à 30 ft : elle est Entravée (Force DD 8 + bonus de maîtrise du porteur pour se libérer, action). (Marvel)" },
+            { name: "Doigt de Sukuna", rarity: "Épique", category: "Transformation", effect: "Consommable. En le mangeant (action), le porteur absorbe une fraction de la puissance de Ryomen Sukuna : ses attaques d'arme infligent 1d10 dégâts de force supplémentaires et il regagne 2 × son bonus de maîtrise PV au début de chacun de ses tours. L'effet est permanent. Drawback : au début de chaque étage, le porteur doit réussir un jet de sauvegarde de Sagesse DD 16 ou être sous le contrôle du MJ pendant son premier tour (Sukuna prend le dessus). (Jujutsu Kaisen)" },
+            { name: "Orbe de Neron", rarity: "Épique", category: "Ressources", effect: "Le porteur gagne 3 emplacements de sort supplémentaires de niveau 5 ou moins (au choix), reconstituables à chaque étage. Drawback : chaque fois qu'il dépense un de ces emplacements supplémentaires, il subit 1d6 dégâts nécrotiques non réductibles (pacte avec un démon)." },
+
+            // ─── LÉGENDAIRES ───
+            { name: "Œil d'Agamotto", rarity: "Légendaire", category: "Transformation", effect: "Une fois par étage, le porteur annule tout ce qui s'est produit depuis le début de son dernier tour : PV, états, ressources, positions et utilisations sont restaurés pour toutes les créatures, et il rejoue son tour en conservant la mémoire de ce qui s'est passé. (Doctor Strange)" },
+            { name: "Joyau de l'Espace", rarity: "Légendaire", category: "Utilitaire", effect: "À volonté, une fois par tour et sans action, le porteur se téléporte jusqu'à 60 ft dans un espace visible. Une fois par étage, il échange la position de deux créatures visibles à 120 ft. (Marvel)" },
+            { name: "Joyau de Réalité", rarity: "Légendaire", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, les dégâts du porteur ignorent résistances et immunités (il choisit si une vulnérabilité s'applique) et il peut changer le type de dégâts de chaque attaque ou sort. (Marvel)" },
+            { name: "Joyau de Puissance", rarity: "Légendaire", category: "Offensif", effect: "Une fois par combat, pendant un tour, tous les dés de dégâts des attaques et sorts du porteur sont maximisés. (Marvel)" },
+            { name: "Joyau de l'Âme", rarity: "Légendaire", category: "Ressources", effect: "Chaque fois qu'une créature hostile meurt à 60 ft du porteur, il récupère des PV égaux à son niveau + son bonus de maîtrise et gagne +1 aux jets d'attaque et de dégâts jusqu'à la fin du combat (cumulable jusqu'à +5). (Marvel)" },
+            { name: "Sceptre de l'Esprit", rarity: "Légendaire", category: "Transformation", effect: "Au début de chaque round, le porteur choisit une créature hostile visible : elle est Charmée par lui jusqu'à la fin du round, sans jet de sauvegarde (un boss fait un jet de Sagesse avec avantage). (Marvel)" },
+            { name: "Baguette de sureau", rarity: "Légendaire", category: "Magique", effect: "Quand le porteur touche avec un sort d'attaque ou qu'une créature échoue à une sauvegarde contre l'un de ses sorts, les dégâts sont maximisés. Ses sorts ne peuvent être ni contrés ni dissipés. (Harry Potter)" },
+            { name: "Pierre de Résurrection", rarity: "Légendaire", category: "Ressources", effect: "Une fois par étage, par une action, le porteur ramène à la vie un aventurier mort, avec tous ses PV et toutes ses ressources. (Harry Potter)" },
+            { name: "Cape de la Mort", rarity: "Légendaire", category: "Utilitaire", effect: "Le porteur est Invisible en permanence aux yeux des créatures non-boss ; attaquer ou lancer un sort ne rompt pas cette invisibilité. Les boss le perçoivent normalement. (Harry Potter)" },
+            { name: "Retourneur de temps", rarity: "Légendaire", category: "Transformation", effect: "Une fois par combat, le porteur joue un tour supplémentaire complet (action, action Bonus, déplacement) immédiatement après son tour normal. (Harry Potter)" },
+            { name: "Pierre philosophale", rarity: "Légendaire", category: "Ressources", effect: "Les PV que le porteur récupère sont doublés. Une fois par étage, par une action Bonus, il récupère tous ses PV et tous ses Dés de vie dépensés. (Harry Potter)" },
+            { name: "Anneau unique", rarity: "Légendaire", category: "Hybride", effect: "Le porteur peut devenir Invisible à volonté (action Bonus). Une fois par étage, une créature non-boss à 30 ft est asservie pendant 1 minute, sans jet de sauvegarde. En contrepartie, le porteur a le désavantage à ses jets de sauvegarde de Sagesse. (Le Seigneur des Anneaux)" },
+            { name: "Holocron ancien", rarity: "Légendaire", category: "Magique", effect: "Une fois par combat, le porteur peut étrangler à distance : une créature non-boss de taille Grande ou inférieure est soulevée et Neutralisée tant qu'il se concentre (1 minute maximum). Un boss n'est affecté que pendant un round. (Star Wars)" },
+            { name: "Ocarina du temps", rarity: "Légendaire", category: "Transformation", effect: "Une fois par étage, à tout moment d'un combat, le porteur joue le Chant du temps : l'équipe et les créatures reviennent au début de ce combat, avec leurs PV, ressources et positions d'alors. Le porteur conserve la mémoire de ce qui s'est passé. (The Legend of Zelda)" },
+            { name: "Triforce de Puissance", rarity: "Légendaire", category: "Offensif", effect: "+5 aux jets de dégâts. Les attaques du porteur infligent un coup critique sur un 18, 19 ou 20 naturel et leurs dégâts ignorent les résistances. (The Legend of Zelda)" },
+            { name: "Triforce de Sagesse", rarity: "Légendaire", category: "Magique", effect: "+3 au DD et aux jets d'attaque de sort. Les créatures ont le désavantage à leurs jets de sauvegarde contre les sorts du porteur, qui ignorent les résistances aux dégâts. (The Legend of Zelda)" },
+            { name: "Triforce de Courage", rarity: "Légendaire", category: "Défensif", effect: "Le porteur est immunisé contre les états Effrayé, Charmé, Étourdi et Paralysé. Une fois par round, il peut transformer un échec à un jet de sauvegarde en réussite, sans dépenser d'action. (The Legend of Zelda)" },
+            { name: "Foudre maîtresse", rarity: "Légendaire", category: "Offensif", effect: "Une fois par étage, par une action, chaque créature hostile visible à 120 ft subit 20d10 dégâts de foudre (Dextérité pour moitié ; un boss subit seulement 10d10). (Percy Jackson)" },
+            { name: "Trident des mers", rarity: "Légendaire", category: "Offensif", effect: "Une fois par étage, par une action, un raz-de-marée frappe les créatures hostiles à 60 ft : 6d10 dégâts contondants et état À terre (Force pour moitié et sans l'état ; un boss a l'avantage au jet). (Percy Jackson)" },
+            { name: "Bident d'Hadès", rarity: "Légendaire", category: "Hybride", effect: "Une fois par tour, le porteur peut exécuter une créature non-boss qui a moins du quart de ses PV, sans jet : elle meurt et aucun effet ne peut la relever. (Percy Jackson)" },
+            { name: "Dragon Balls", rarity: "Légendaire", category: "Ressources", effect: "Une fois par run, le porteur peut rassembler les sept boules : tous les aventuriers morts reviennent à la vie avec tous leurs PV, et chaque aventurier récupère toutes ses ressources (hors artefacts). (Dragon Ball)" },
+            { name: "Instinct ultime", rarity: "Légendaire", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, la première attaque de chaque créature par round contre le porteur échoue automatiquement, ses propres attaques ont l'avantage, et il ne peut pas être surpris. (Dragon Ball)" },
+            { name: "Technique de téléportation", rarity: "Légendaire", category: "Utilitaire", effect: "Une fois par tour, sans action, le porteur se téléporte à côté de n'importe quelle créature visible. Une fois par combat, il peut emmener deux alliés. (Dragon Ball)" },
+            { name: "Flèche Requiem", rarity: "Légendaire", category: "Transformation", effect: "Au début de chaque étage, le porteur choisit l'une de ses capacités (sort, capacité de classe, attaque d'arme ou artefact) : ses dés de dégâts ou de soin sont doublés, ses utilisations limitées sont doublées, et elle ignore les immunités aux dégâts. (JoJo's Bizarre Adventure)" },
+            { name: "Stand : Le Monde", rarity: "Légendaire", category: "Transformation", effect: "Une fois par étage, au début de son tour, le porteur arrête le temps : il joue 3 tours consécutifs pendant lesquels les autres créatures sont Neutralisées (un boss ne l'est que pendant le premier). (JoJo's Bizarre Adventure)" },
+            { name: "Stand : Cramoisi", rarity: "Légendaire", category: "Transformation", effect: "Une fois par combat, au début d'un round, le porteur efface le temps : tout ce que font les créatures hostiles pendant ce round (attaques, sorts, effets) n'a aucun effet, et il agit normalement. (JoJo's Bizarre Adventure)" },
+            { name: "Stand : Expérience dorée Requiem", rarity: "Légendaire", category: "Défensif", effect: "Une fois par combat, quand une créature inflige des dégâts ou un état au porteur ou à un allié, l'effet est annulé comme s'il ne s'était jamais produit, et la créature perd le reste de son tour. (JoJo's Bizarre Adventure)" },
+            { name: "Six Chemins", rarity: "Légendaire", category: "Offensif", effect: "Une fois par round, action Bonus : le porteur repousse de 40 ft ou attire à 5 ft toutes les créatures hostiles à 60 ft (Force, sinon 6d8 dégâts de force). Une fois par combat, il peut annuler un sort lancé par une créature (réaction). (Naruto)" },
+            { name: "Izanagi", rarity: "Légendaire", category: "Défensif", effect: "Une fois par run, quand le porteur est réduit à 0 PV ou meurt, l'événement est annulé : il récupère tous ses PV, perd tous ses états et rejoue son dernier round. L'artefact est consommé. (Naruto)" },
+            { name: "Kamui", rarity: "Légendaire", category: "Défensif", effect: "Une fois par combat, quand une créature cible le porteur, il peut utiliser sa réaction pour devenir intangible jusqu'au début de son prochain tour : aucun dégât ni effet, il traverse créatures et objets et peut se téléporter à 30 ft. (Naruto)" },
+            { name: "Chakra du démon-renard", rarity: "Légendaire", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, +2 CA et aux jets d'attaque, deux attaques supplémentaires, +20 ft de vitesse, +1 × son bonus de maîtrise aux dégâts et 10 × son niveau en PV temporaires. (Naruto)" },
+            { name: "Extension du domaine : Vide infini", rarity: "Légendaire", category: "Transformation", effect: "Une fois par étage, le porteur crée une zone de 30 ft de rayon pendant 1 minute : les créatures hostiles à l'intérieur sont Neutralisées (un boss peut faire un jet de Sagesse à chacun de ses tours pour y échapper). (Jujutsu Kaisen)" },
+            { name: "Extension du domaine : Sanctuaire malveillant", rarity: "Légendaire", category: "Offensif", effect: "Une fois par étage, le porteur crée une zone de 30 ft de rayon pendant 1 minute : au début de chaque round, chaque créature hostile dedans subit 5d10 dégâts tranchants, sans jet (un boss subit la moitié). (Jujutsu Kaisen)" },
+            { name: "Six Yeux", rarity: "Légendaire", category: "Défensif", effect: "Tant que le porteur n'a pas attaqué pendant son dernier tour, les créatures hostiles ne peuvent ni le cibler par une attaque de mêlée ni s'approcher à moins de 10 ft de lui. (Jujutsu Kaisen)" },
+            { name: "Bankai absolu", rarity: "Légendaire", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, +4 aux jets d'attaque, dés de dégâts de l'arme doublés, deux attaques supplémentaires et +30 ft de vitesse. À la fin, le porteur subit 2 niveaux d'Épuisement. (Bleach)" },
+            { name: "Gear Fifth", rarity: "Légendaire", category: "Transformation", effect: "Une fois par étage, action Bonus : pendant 1 minute, les dégâts du porteur ignorent résistances et immunités, il est immunisé contre Entravé et À terre, sa portée de mêlée augmente de 15 ft et, une fois par round, il peut annuler les dégâts d'une attaque (réaction). (One Piece)" },
+            { name: "Fruit de l'opération", rarity: "Légendaire", category: "Transformation", effect: "Consommable. En mangeant ce fruit, une fois par étage, le porteur déploie une Salle de 60 ft de rayon pendant 1 minute : à chacun de ses tours, il échange la position de deux créatures ou objets dans la Salle et peut priver une créature de son action pour ce tour, sans jet. L'effet est permanent. Drawback : le porteur ne sait pas nager. (One Piece)" },
+            { name: "Orbe du Grand Sage", rarity: "Légendaire", category: "Utilitaire", effect: "Orbe de cristal noir. Au début de chaque combat, le porteur connaît la CA, les PV, les résistances, immunités, vulnérabilités et capacités de chaque créature hostile. Ses jets de d20 ne peuvent pas donner un résultat inférieur à 10. (Tensura)" },
+            { name: "Collier du Prédateur", rarity: "Légendaire", category: "Ressources", effect: "Collier fait de crânes miniatures. Quand le porteur réduit une créature non-boss à 0 PV, il peut absorber l'une de ses attaques ou capacités via le collier et l'utiliser une fois par étage (3 capacités stockées au maximum ; la plus ancienne est perdue). (Tensura)" },
+            { name: "Arme ultime", rarity: "Légendaire", category: "Offensif", effect: "Chaque attaque d'arme du porteur inflige 2d10 dégâts supplémentaires pour chaque quart de ses PV maximum manquant (jusqu'à +8d10). (Final Fantasy)" },
+            { name: "Omnislash", rarity: "Légendaire", category: "Offensif", effect: "Une fois par étage, par une action, le porteur effectue jusqu'à 15 attaques d'arme réparties à volonté entre les créatures visibles à 60 ft, avec un déplacement instantané entre cibles sans attaque d'opportunité. (Final Fantasy)" },
+            { name: "Âme de seigneur", rarity: "Légendaire", category: "Transformation", effect: "Après avoir vaincu un boss, le porteur peut consommer son âme (action) : il récupère tous ses PV et toutes ses ressources, et gagne +2 aux jets d'attaque, de dégâts, de sauvegarde et à la CA pendant tout l'étage suivant. (Dark Souls)" },
+            { name: "Première Flamme", rarity: "Légendaire", category: "Ressources", effect: "Une fois par run, quand tous les aventuriers sont à 0 PV, le porteur rallume la flamme : l'équipe recommence l'étage en cours avec tous ses PV et toutes ses ressources, en conservant ses passifs et artefacts. (Dark Souls)" },
+            { name: "Cercle d'Elden", rarity: "Légendaire", category: "Transformation", effect: "Une fois par étage, le porteur proclame un Ordre pendant 1 minute : les créatures hostiles ne peuvent pas utiliser de réactions, ou ne peuvent pas lancer de sorts, ou ne peuvent pas se déplacer, ou ne peuvent pas récupérer de PV (au choix du porteur). (Elden Ring)" },
+            { name: "Gobelet de café", rarity: "Légendaire", category: "Hybride", effect: "Le porteur gagne une action supplémentaire à chaque round (hors action Magie). En contrepartie, il ne récupère plus ni PV ni ressources grâce aux sanctuaires et aux repos. (Slay the Spire)" },
+            { name: "Sacred Heart", rarity: "Légendaire", category: "Offensif", effect: "+2d6 aux dégâts de chaque attaque et sort du porteur, qui ignorent le couvert et ne subissent aucun désavantage. +5 PV maximum. (The Binding of Isaac)" },
+            { name: "Verre éphémère", rarity: "Légendaire", category: "Offensif", effect: "Tous les dés de dégâts du porteur sont doublés. Ses PV maximum sont réduits de moitié (arrondi supérieur). (Risk of Rain)" },
+            { name: "Miroir de la nuit", rarity: "Légendaire", category: "Défensif", effect: "Trois fois par run, quand le porteur tombe à 0 PV, il se relève avec la moitié de ses PV maximum et chaque créature hostile à 30 ft est repoussée de 20 ft. (Hades)" },
+            { name: "Prescience du Kwisatz Haderach", rarity: "Légendaire", category: "Utilitaire", effect: "Au début de chaque round, le porteur lance deux d20 et conserve leurs résultats : il peut remplacer n'importe quel jet de d20 (le sien ou celui d'une créature visible) par l'un d'eux. (Dune)" },
+            { name: "Pilule rouge", rarity: "Légendaire", category: "Utilitaire", effect: "Une fois par round, après le jet de d20 d'une créature située à 60 ft, le porteur peut remplacer le résultat par 10. (Matrix)" },
+            { name: "Katana de l'immortel", rarity: "Légendaire", category: "Ressources", effect: "Quand le porteur réduit une créature d'un combat difficile ou un boss à 0 PV, il récupère 3 × son niveau en PV et gagne +1 aux jets d'attaque et de dégâts jusqu'à la fin de la run (maximum +5). (Highlander)" },
+            { name: "Thu'um", rarity: "Légendaire", category: "Offensif", effect: "Une fois par combat, action Bonus : cône de 60 ft, les créatures hostiles doivent réussir un jet de Force ou subir 10d6 dégâts de force, être repoussées de 40 ft et Neutralisées jusqu'au début de leur prochain tour. (Skyrim)" },
+            { name: "Excalibur", rarity: "Légendaire", category: "Hybride", effect: "Les attaques d'arme du porteur infligent 3d8 dégâts radiants supplémentaires et ignorent les immunités. Une fois par étage, une ligne de lumière de 100 ft inflige 10d10 dégâts radiants (Dextérité pour moitié). (Légende arthurienne)" },
+            { name: "Gungnir", rarity: "Légendaire", category: "Offensif", effect: "Les attaques d'arme du porteur avec cette lance touchent automatiquement une créature visible à 120 ft ; la lance revient en main. Une fois par étage, une attaque de ce type est un coup critique. (Mythologie nordique)" },
+            { name: "Sablier de Chronos", rarity: "Légendaire", category: "Transformation", effect: "Au début de chaque round, le porteur se place à n'importe quelle position de l'ordre d'initiative pour ce round. Une fois par combat, il peut interrompre le tour d'une créature pour jouer immédiatement le sien." },
+            { name: "Cœur d'Infernity", rarity: "Légendaire", category: "Transformation", effect: "Chaque boss vaincu augmente de manière permanente (jusqu'à la fin de la run) les jets d'attaque et la CA du porteur de +1 (maximum +5)." },
+            { name: "Couronne du régicide", rarity: "Légendaire", category: "Offensif", effect: "Les boss ne peuvent pas dépenser de Résistance légendaire contre les sorts et capacités du porteur. Ses attaques contre un boss ignorent résistances et immunités et infligent 2 × son niveau en dégâts supplémentaires." },
+            { name: "Clé du cartographe infernal", rarity: "Légendaire", category: "Utilitaire", effect: "Une fois par étage, le porteur peut remplacer la prochaine salle de combat qui n'est pas un boss par un sanctuaire." },
+            { name: "Tablettes de la destinée", rarity: "Légendaire", category: "Utilitaire", effect: "Deux tablettes de pierre gravées. Au début de chaque étage, le porteur lit les tablettes : il connaît l'intégralité du prochain combat (composition ennemie, PV, capacités spéciales, ordre d'initiative). Une fois par étage, il peut réécrire le destin : une créature hostile de son choix commence le combat avec seulement la moitié de ses PV. (Mythologie sumérienne)" },
+            { name: "Potion de divinité", rarity: "Légendaire", category: "Ressources", effect: "Consommable unique par run. Action : le porteur boit la potion et devient temporairement divin pendant 3 rounds : il est immunisé contre tous les dégâts et états, ses attaques touchent automatiquement et sont des coups critiques, et ses sorts maximisent leurs dés. Après l'effet, il subit 3 niveaux d'Épuisement. (Inspiration mythologique)" },
+            { name: "Manuscrit de l'Alchimiste", rarity: "Légendaire", category: "Transformation", effect: "Grimoire relié en cuir. Au début de chaque étage, le porteur peut transmetuer l'un de ses artefacts équipés (hors Légendaire) : il choisit un nouvel artefact de même rareté au hasard parmi 3 options. L'ancien artefact est perdu. Une fois par run, il peut transmetuer un artefact Rare en Épique. (Full Metal Alchemist)" },
+            { name: "Bague de Sauron", rarity: "Légendaire", category: "Hybride", effect: "Le porteur est invisible à volonté (action Bonus, se rompt à l'attaque ou au sort). Une fois par combat, toutes les créatures hostiles non-boss à 60 ft doivent réussir un jet de Sagesse DD 20 ou être Charmées pendant 1 minute. Les boss ont l'avantage. Drawback : le porteur a le désavantage permanent à ses jets de sauvegarde de Sagesse et subit 1 niveau d'Épuisement à la fin de chaque étage où il a utilisé la bague. (Le Seigneur des Anneaux)" },
+        ];
+
+        const ALL_PASSIVES = [
+            // Communs (Coût budget : 1 pt(s), déblocage Hub : 10 PI)
+            { name: "Précision affûtée (Mêlée)", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 aux jets d'attaque effectués avec une arme de mêlée." },
+            { name: "Précision affûtée (Distance)", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 aux jets d'attaque effectués avec une arme à distance." },
+            { name: "Garde renforcée", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 CA tant que l'aventurier porte une armure et manie un bouclier." },
+            { name: "Réflexes aiguisés", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux jets d'initiative." },
+            { name: "Énergie résiduelle", rarity: "Commun", cost: 1, unlockCost: 10, effect: "Une fois par combat, chaque aventurier peut ajouter 1d4 à un jet d'attaque, de caractéristique ou de sauvegarde, après le d20 et avant de connaître le résultat." },
+            { name: "Instinct de survie", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux jets de sauvegarde de Dextérité." },
+            { name: "Volonté de fer", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux jets de sauvegarde de Sagesse." },
+            { name: "Constitution robuste", rarity: "Commun", cost: 1, unlockCost: 10, effect: "Chaque aventurier gagne 1 + son niveau en PV maximum. Calculé à l'obtention du passif, non réappliqué au passage de niveau." },
+            { name: "Vitalité persistante", rarity: "Commun", cost: 1, unlockCost: 10, effect: "Après chaque repos court, chaque aventurier récupère des PV supplémentaires égaux à son bonus de maîtrise." },
+            { name: "Puissance maîtrisée", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 aux jets de dégâts des attaques d'arme." },
+            { name: "Magie affûtée", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 aux jets de dégâts des sorts." },
+            { name: "Concentration renforcée", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux jets de sauvegarde de Constitution pour maintenir sa concentration." },
+            { name: "Savoir instinctif", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux tests d'Investigation et de Perception." },
+            { name: "Agilité naturelle", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux tests d'Acrobaties et d'Escamotage." },
+            { name: "Discrétion instinctive", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux tests de Discrétion." },
+            { name: "Athlétisme supérieur", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux tests d'Athlétisme." },
+            { name: "Présence imposante", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux tests d'Intimidation et de Persuasion." },
+            { name: "Érudit", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux tests d'Arcanes, d'Histoire, de Nature et de Religion." },
+            { name: "Langue d'argent", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux tests de Tromperie et de Représentation." },
+            { name: "Résistance physique", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 aux jets de sauvegarde de Force, Dextérité et Constitution." },
+            { name: "Résistance mentale", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 aux jets de sauvegarde d'Intelligence, Sagesse et Charisme." },
+            { name: "Sang-froid", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux jets de sauvegarde contre les états Effrayé et Charmé." },
+            { name: "Estomac solide", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux jets de sauvegarde contre les états Empoisonné et Aveuglé." },
+            { name: "Dernier rempart", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 CA tant que l'aventurier possède moins de la moitié de ses PV maximum." },
+            { name: "Bonne étoile", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+2 aux jets de sauvegarde (remplacé par un bonus équivalent aux tests de résistance contre les effets d'affaiblissement ou de stabilisation selon les règles d'INFERNITY)." },
+            { name: "Touche-à-tout", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 à tous les tests de caractéristique." },
+            { name: "Pas léger", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+10 ft à la vitesse de déplacement." },
+            { name: "Œil de lynx", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+10 ft à la portée normale et à la portée longue des attaques à distance avec une arme." },
+            { name: "Lanceur aguerri", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 aux jets d'attaque et de dégâts avec les armes de jet (propriété Lancer)." },
+            { name: "Mains guérisseuses", rarity: "Commun", cost: 1, unlockCost: 10, effect: "Les sorts et capacités d'un aventurier qui rendent des PV rendent un nombre de PV supplémentaires égal à son bonus de maîtrise, par créature soignée." },
+            { name: "Frappe élémentaire", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 aux jets de dégâts quand un aventurier inflige des dégâts élémentaires (feu, froid, foudre, tonnerre, acide, poison, nécrotique ou radiant), une fois par jet de dégâts." },
+            { name: "Allonge naturelle", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+5 ft à la portée de mêlée des armes des aventuriers." },
+            { name: "Traque infernale", rarity: "Commun", cost: 1, unlockCost: 10, effect: "+1 aux jets d'attaque et de dégâts contre les créatures qui ont infligé des dégâts à un aventurier lors de ce combat." },
+            { name: "Regain de combat", rarity: "Commun", cost: 1, unlockCost: 10, effect: "Une fois par combat, quand un aventurier est réduit à la moitié de ses PV ou moins pour la première fois, il récupère des PV égaux à son bonus de maîtrise." },
+            { name: "Vision perçante", rarity: "Commun", cost: 1, unlockCost: 10, effect: "Les aventuriers ignorent l'avantage conféré aux attaquants par l'état Invisible et peuvent voir dans le noir magique jusqu'à 30 ft." },
+
+            // Peu communs (Coût budget : 2 pt(s), déblocage Hub : 20 PI)
+            { name: "Réflexes surhumains", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+4 aux jets d'initiative." },
+            { name: "Précision instinctive", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+1 aux jets d'attaque effectués avec les sorts." },
+            { name: "Sorts affûtés", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+1 au DD de sauvegarde des sorts." },
+            { name: "Carapace renforcée", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+1 CA." },
+            { name: "Vitalité exceptionnelle", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Chaque aventurier gagne 2 PV maximum par niveau. Calculé à l'obtention du passif, non réappliqué au passage de niveau." },
+            { name: "Régénération latente", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Au début de chacun de ses tours en combat, un aventurier récupère des PV égaux à son bonus de maîtrise, à condition d'avoir au moins 1 PV." },
+            { name: "Maîtrise martiale", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+2 aux jets de dégâts des attaques d'arme." },
+            { name: "Magie dévastatrice", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+2 aux jets de dégâts des sorts, quel que soit leur type de dégâts." },
+            { name: "Frappe dévastatrice", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Une fois par tour, quand une attaque d'arme touche, ajouter 1d4 dégâts du même type que l'arme." },
+            { name: "Tir assuré", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Les attaques à distance ne subissent pas de désavantage à longue portée et ignorent le couvert partiel." },
+            { name: "Concentration absolue", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+4 aux jets de sauvegarde de Constitution pour maintenir sa concentration." },
+            { name: "Résilience physique", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+2 aux jets de sauvegarde de Force, Dextérité et Constitution." },
+            { name: "Résilience mentale", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+2 aux jets de sauvegarde d'Intelligence, Sagesse et Charisme." },
+            { name: "Instinct du prédateur", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+4 aux tests de Perception et d'Investigation." },
+            { name: "Agilité surhumaine", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+4 aux tests d'Acrobaties et d'Escamotage." },
+            { name: "Athlète exceptionnel", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+4 aux tests d'Athlétisme." },
+            { name: "Ombre silencieuse", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+4 aux tests de Discrétion." },
+            { name: "Présence écrasante", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+4 aux tests d'Intimidation et de Persuasion." },
+            { name: "Énergie de réserve", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Une fois par étage, chaque aventurier peut ajouter 1d8 à un jet d'attaque, de caractéristique ou de sauvegarde, après le d20 et avant de connaître le résultat." },
+            { name: "Énergie du désespoir", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Une fois par étage, chaque aventurier peut relancer un jet d'attaque raté et conserver le nouveau résultat." },
+            { name: "Détermination inébranlable", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Une fois par étage, chaque aventurier peut transformer un échec à un jet de sauvegarde en réussite." },
+            { name: "Dernière chance", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Une fois par étage, quand un aventurier tomberait à 0 PV, il tombe à 1 PV à la place, même si les dégâts auraient causé une mort instantanée." },
+            { name: "Maîtrise des critiques", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Les attaques d'un aventurier infligent un coup critique sur un 19 ou un 20 naturel lorsqu'elles touchent." },
+            { name: "Récupération supérieure", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Quand un Dé de vie est dépensé pendant un repos court, récupérer des PV supplémentaires égaux à deux fois le bonus de maîtrise." },
+            { name: "Maître des sanctuaires", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "À chaque utilisation d'un sanctuaire, chaque aventurier récupère un Dé de vie dépensé." },
+            { name: "Préparation au combat", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Au début de chaque combat, chaque aventurier récupère des PV égaux à son bonus de maîtrise." },
+            { name: "Instinct de survie extrême", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Au début d'un combat difficile ou de boss, un aventurier qui a moins de la moitié de ses PV récupère des PV égaux à deux fois son bonus de maîtrise." },
+            { name: "Adrénaline infernale", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Quand un aventurier réduit une créature à 0 PV, il gagne des PV temporaires égaux à son bonus de maîtrise. Ils ne se cumulent pas." },
+            { name: "Tueur de boss", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+2 aux dégâts de chaque attaque contre un boss." },
+            { name: "Chasseur d'élite", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+1d4 dégâts à chaque attaque d'arme qui touche une créature d'un combat difficile ou d'un boss." },
+            { name: "Supériorité tactique", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+2 aux jets d'attaque pendant le premier round de chaque combat." },
+            { name: "Briseur de défense", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Les aventuriers ignorent 2 points des bonus de CA conférés par un sort ou un effet magique (ex. Bouclier)." },
+            { name: "Concentration meurtrière", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Une fois par combat, après un coup critique, l'aventurier récupère un emplacement de sort de niveau 1 ou, s'il n'en possède pas, des PV égaux à son bonus de maîtrise." },
+            { name: "La loi du plus fort", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Après un combat difficile terminé sans qu'aucun aventurier ne soit tombé à 0 PV, chaque aventurier récupère des PV égaux à son niveau." },
+            { name: "Union des âmes", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Une fois par combat, un aventurier peut utiliser sa réaction pour permettre à un allié de relancer un jet de sauvegarde raté." },
+            { name: "Résilience infernale", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "+3 aux jets de sauvegarde de Constitution." },
+            { name: "Frappe foudroyante", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Une fois par tour, quand un aventurier touche avec une attaque d'arme lors du premier round d'un combat, il peut appliquer l'état Étourdi à la cible jusqu'à la fin de son prochain tour (Constitution DD 8 + bonus de maîtrise pour l'éviter)." },
+            { name: "Gardien des alliés", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Une fois par combat, quand un allié à 10 ft ou moins d'un aventurier est touché par une attaque, cet aventurier peut utiliser sa réaction pour réduire de 1d8 + son bonus de maîtrise les dégâts subis par l'allié." },
+            { name: "Mémoire de combat", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Au début du deuxième round de chaque combat (et des suivants), chaque aventurier gagne +1 aux jets d'attaque et +1 CA cumulatif (maximum +3 de chaque)." },
+            { name: "Flux de magie", rarity: "Peu commun", cost: 2, unlockCost: 20, effect: "Une fois par étage, quand un aventurier lance un sort de niveau 1 ou plus, il peut lancer un sort mineur en action Bonus immédiatement après." },
+
+            // Rares (Coût budget : 3 pt(s), déblocage Hub : 35 PI)
+            { name: "Brasier dévorant", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par tour, quand un aventurier inflige des dégâts de feu, le jet de dégâts est doublé." },
+            { name: "Givre éternel", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par tour, quand un aventurier inflige des dégâts de froid, le jet de dégâts est doublé." },
+            { name: "Foudre rugissante", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par tour, quand un aventurier inflige des dégâts de foudre ou de tonnerre, le jet de dégâts est doublé." },
+            { name: "Venin corrosif", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par tour, quand un aventurier inflige des dégâts d'acide ou de poison, le jet de dégâts est doublé." },
+            { name: "Jugement des ténèbres", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par tour, quand un aventurier inflige des dégâts nécrotiques ou radiants, le jet de dégâts est doublé." },
+            { name: "Briseur de lames", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Les dégâts contondants, perforants et tranchants infligés par les aventuriers ignorent les résistances des créatures (pas les immunités)." },
+            { name: "Briseur d'éléments", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Les dégâts de feu, froid, foudre, tonnerre et acide infligés par les aventuriers ignorent les résistances (pas les immunités)." },
+            { name: "Briseur de mystères", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Les dégâts nécrotiques, radiants, de force, psychiques et de poison infligés par les aventuriers ignorent les résistances (pas les immunités)." },
+            { name: "Œil analytique", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Au début de chaque combat, l'équipe connaît la CA, les PV actuels, les résistances, immunités et vulnérabilités de chaque créature hostile." },
+            { name: "Second souffle", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par combat, chaque aventurier peut utiliser une action Bonus pour récupérer 1d10 + son niveau en PV." },
+            { name: "Ruse du voleur", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Chaque aventurier peut utiliser son action Bonus pour effectuer l'action Se précipiter, Se désengager ou Se cacher." },
+            { name: "Frappe sournoise d'équipe", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par tour, quand un aventurier touche avec avantage ou avec un allié à 5 ft de la cible, il inflige des dés de d6 supplémentaires égaux à son bonus de maîtrise. Ne se cumule pas avec la Frappe sournoise : utiliser la plus élevée." },
+            { name: "Parade vive", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par round, chaque aventurier peut utiliser sa réaction pour réduire de 1d10 + son niveau les dégâts d'une attaque qu'il subit." },
+            { name: "Esquive instinctive", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par round, chaque aventurier peut utiliser sa réaction pour réduire de moitié les dégâts d'une attaque dont l'attaquant est visible." },
+            { name: "Évasion", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Lors d'un jet de sauvegarde de Dextérité contre un effet qui inflige la moitié des dégâts en cas de réussite, l'aventurier ne subit aucun dégât s'il réussit et la moitié s'il échoue." },
+            { name: "Sens du danger", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Avantage aux jets de sauvegarde de Dextérité contre les effets que l'aventurier peut voir, tant qu'il n'est pas Aveuglé, Assourdi ou Neutralisé." },
+            { name: "Maîtrise de sauvegarde", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Chaque aventurier gagne la maîtrise d'un jet de sauvegarde dont il ne dispose pas encore (choix du joueur)." },
+            { name: "Expertise", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Chaque aventurier choisit deux compétences maîtrisées : son bonus de maîtrise est doublé pour ces compétences." },
+            { name: "Talent assuré", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Quand un aventurier effectue un test de compétence maîtrisée, tout résultat de 9 ou moins au d20 est considéré comme un 10." },
+            { name: "Maître d'armes", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Chaque aventurier peut utiliser la propriété de Maîtrise de toute arme avec laquelle il est compétent." },
+            { name: "Maîtrise des armes lourdes", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par tour, ajouter le bonus de maîtrise aux dégâts d'une attaque touchant avec une arme à propriété Lourde." },
+            { name: "Tireur d'élite", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Les attaques à distance ignorent le couvert partiel et à trois-quarts, et ne subissent aucun désavantage au corps à corps." },
+            { name: "Tueur de colosses", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par tour, quand l'aventurier touche une créature qui n'a pas tous ses PV, il inflige 1d8 dégâts supplémentaires." },
+            { name: "Proie désignée", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Au premier round de chaque combat, chaque aventurier désigne une créature : ses attaques contre elle infligent 1d6 dégâts de force supplémentaires jusqu'à la fin du combat." },
+            { name: "Déchaînement", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par combat, après avoir effectué l'action Attaquer, chaque aventurier peut effectuer une attaque d'arme supplémentaire en action Bonus." },
+            { name: "Tour de magie puissant", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Les sorts mineurs d'un aventurier ajoutent son modificateur d'incantation aux dégâts infligés." },
+            { name: "Sorts rapides", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par étage, chaque lanceur de sorts peut lancer un sort de niveau 3 ou moins dont le temps d'incantation est une action comme une action Bonus." },
+            { name: "Récupération arcanique", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par étage, pendant un repos ou au sanctuaire, chaque lanceur de sorts récupère des emplacements dont le niveau total est au plus égal à la moitié de son niveau (arrondi au supérieur), aucun ne dépassant le niveau 5." },
+            { name: "Réserve de guérison", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Chaque aventurier dispose d'une réserve de soins égale à 2 × son niveau, reconstituée à chaque étage. Par une action, il peut toucher une créature et lui rendre autant de PV qu'il le souhaite, dans la limite de la réserve." },
+            { name: "Inspiration héroïque", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Au début de chaque combat difficile ou de boss, chaque aventurier qui n'a pas d'Inspiration héroïque en gagne une." },
+            { name: "Inspiration collective", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Au début de chaque combat, l'équipe gagne 3 dés d'inspiration (d8). Un aventurier peut en dépenser un pour l'ajouter à un jet d'attaque, de caractéristique ou de sauvegarde d'un allié, avant de connaître le résultat. Les dés non utilisés sont perdus à la fin du combat." },
+            { name: "Aura de protection", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Tout aventurier à 10 ft ou moins d'un autre aventurier conscient gagne +2 aux jets de sauvegarde. Ne se cumule pas avec lui-même." },
+            { name: "Résistance adaptable", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Au début de chaque étage, l'équipe choisit un type de dégâts : tous les aventuriers y gagnent la résistance jusqu'à la fin de l'étage." },
+            { name: "Survivant", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par combat, quand un aventurier tomberait à 0 PV, il tombe à 1 PV à la place et gagne des PV temporaires égaux à 2 × son niveau." },
+            { name: "Fureur du berserker", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Quand un aventurier tombe sous la moitié de ses PV, il gagne +2 aux jets d'attaque et +1d6 aux dégâts jusqu'à la fin du combat. Cet effet ne se déclenche qu'une fois par combat." },
+            { name: "Volonté du survivant", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par combat, quand un aventurier devrait échouer à un jet de sauvegarde contre la mort, il le réussit automatiquement. De plus, il regagne 1 PV à la fin du round où il stabilise." },
+            { name: "Frappe de précision", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Une fois par tour, un aventurier peut ignorer le couvert total d'une cible pour une attaque (la cible est traitée comme à découvert). De plus, +2 aux dégâts des attaques à distance critiques." },
+            { name: "Synchronisation d'équipe", rarity: "Rare", cost: 3, unlockCost: 35, effect: "Quand deux aventuriers ou plus attaquent la même créature pendant le même round, chacun inflige 1d6 dégâts de force supplémentaires à la prochaine fois qu'il touche cette créature." },
+            { name: "Discipline martiale", rarity: "Rare", cost: 3, unlockCost: 35, effect: "+1 aux jets d'attaque pour chaque attaque effectuée contre la même cible dans un même tour (maximum +3). Ce bonus ne se cumule pas d'un tour à l'autre." },
+
+            // Épiques (Coût budget : 4 pt(s), déblocage Hub : 55 PI)
+            { name: "Fougue (Action Surge)", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Deux fois par étage, chaque aventurier peut effectuer une action supplémentaire pendant son tour (hors action Magie)." },
+            { name: "Rage", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Trois fois par étage, chaque aventurier peut entrer en Rage par une action Bonus pendant 1 minute : avantage aux tests et sauvegardes de Force, +3 aux dégâts de mêlée et résistance aux dégâts contondants, perforants et tranchants. Impossible de lancer des sorts ou de se concentrer." },
+            { name: "Embuscade terrifiante (Dread Ambusher)", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Au premier round de chaque combat, chaque aventurier gagne +10 ft de vitesse et, quand il effectue l'action Attaquer, une attaque supplémentaire qui inflige 2d6 dégâts psychiques supplémentaires si elle touche." },
+            { name: "Ascension", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Chaque aventurier gagne immédiatement un niveau (niveau 20 maximum)." },
+            { name: "Attaque supplémentaire", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Quand un aventurier effectue l'action Attaquer avec une arme, il effectue une attaque supplémentaire (cumulable avec ses capacités de classe)." },
+            { name: "Coup de maître", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Les attaques d'un aventurier infligent un coup critique sur un 18, 19 ou 20 naturel (remplace Maîtrise des critiques) et chaque coup critique inflige des dégâts supplémentaires égaux à son niveau." },
+            { name: "Pas de l'ombre", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par tour, un aventurier peut utiliser son action Bonus pour se téléporter jusqu'à 30 ft dans un espace inoccupé visible, puis obtient l'avantage à la prochaine attaque de ce tour." },
+            { name: "Tempête d'acier", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par combat, chaque aventurier peut, dans le cadre de l'action Attaquer, effectuer un jet d'attaque unique contre chaque créature située à 10 ft de lui." },
+            { name: "Réflexes doubles", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Chaque aventurier dispose de deux réactions par round." },
+            { name: "Bouclier humain", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par round, quand un allié à 10 ft est touché par une attaque, un aventurier peut utiliser sa réaction pour subir les dégâts à sa place, avec résistance à ces dégâts." },
+            { name: "Esquive parfaite", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par combat, chaque aventurier peut utiliser sa réaction pour qu'une attaque qui le cible manque automatiquement." },
+            { name: "Peau de dragon", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Les aventuriers ont la résistance aux dégâts de feu, de froid, de foudre, d'acide et de tonnerre." },
+            { name: "Âme de diamant", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Chaque aventurier maîtrise tous les jets de sauvegarde. Une fois par combat, il peut relancer un jet de sauvegarde raté avec un bonus égal à son bonus de maîtrise." },
+            { name: "Indomptable", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par combat, chaque aventurier peut relancer un jet de sauvegarde raté en ajoutant son niveau au nouveau jet." },
+            { name: "Maîtrise des sorts", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Chaque lanceur de sorts choisit un sort de niveau 1 et un sort de niveau 2 qu'il connaît : il peut les lancer à volonté au niveau de base, sans dépenser d'emplacement." },
+            { name: "Magie jumelée", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par combat, un lanceur de sorts peut cibler une créature supplémentaire avec un sort de niveau 3 ou moins qui ne cible qu'une seule créature." },
+            { name: "Surcharge arcanique", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par étage, chaque lanceur de sorts peut maximiser les dés de dégâts d'un sort de niveau 1 à 5." },
+            { name: "Châtiment divin", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par combat, quand un aventurier touche avec une attaque d'arme, il inflige 4d8 dégâts radiants supplémentaires (+1d8 contre un fiélon ou un mort-vivant)." },
+            { name: "Cri de ralliement", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par combat, l'équipe peut utiliser une action Bonus : tous les aventuriers à 0 PV se relèvent avec 5 × leur bonus de maîtrise PV." },
+            { name: "Devil Trigger", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par étage, un aventurier peut utiliser une action Bonus pour se transformer pendant 1 minute : +2 CA, +10 ft de vitesse, +bonus de maîtrise aux dégâts, et il récupère un nombre de PV égal à son bonus de maîtrise au début de chacun de ses tours." },
+            { name: "Mode ermite", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par étage, un aventurier peut utiliser une action Bonus pour entrer en Mode ermite pendant la durée d'un combat : il ajoute son bonus de maîtrise à tous ses jets d'attaque, tests de caractéristique et jets de sauvegarde." },
+            { name: "Bankai", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par étage, un aventurier peut libérer sa lame (action Bonus) pendant 1 minute : son arme gagne +10 ft de allonge et inflige 2d8 dégâts supplémentaires, une fois par tour, du type choisi (feu, froid, foudre ou radiant)." },
+            { name: "Limit Break", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par étage, quand un aventurier tombe sous la moitié de ses PV, il peut utiliser sa réaction : ses attaques infligent des dégâts maximisés (dés au maximum) jusqu'à la fin de son prochain tour." },
+            { name: "Haki des rois", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Au début de chaque combat qui n'est pas un combat de boss, les créatures hostiles doivent réussir un jet de sauvegarde de Sagesse (DD 8 + bonus de maîtrise + modificateur de Charisme du meilleur aventurier) ou être Effrayées pendant 1 minute." },
+            { name: "Poussée de la Force", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par combat, un aventurier peut utiliser une action Bonus : les créatures hostiles à 15 ft doivent réussir un jet de sauvegarde de Force ou être repoussées de 20 ft et jetées À terre." },
+            { name: "Absorption de puissance", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Chaque fois qu'un aventurier réduit une créature à 0 PV, il gagne +1 aux jets d'attaque et de dégâts jusqu'à la fin du combat (cumulable jusqu'à +5). À la fin du combat, il récupère des PV égaux à son niveau par cumul." },
+            { name: "Accumulation", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Les aventuriers gagnent +1 aux jets d'attaque, aux dégâts et aux jets de sauvegarde pour chaque autre passif Rare, Épique ou Légendaire de l'équipe (maximum +4)." },
+            { name: "Serment Nen", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Au début de chaque étage, un aventurier peut prêter un serment : ne pas utiliser sa réaction pendant l'étage. En échange, il gagne +2 CA et +4 aux dégâts jusqu'à la fin de l'étage." },
+            { name: "Avantage tactique", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Au premier round de chaque combat, les aventuriers jouent avant toutes les créatures hostiles, dans l'ordre de leur choix." },
+            { name: "Frappe de titan", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par combat, chaque aventurier peut utiliser son action pour effectuer une frappe dévastatrice : une attaque d'arme qui, si elle touche, inflige le maximum de dégâts et renverse la cible (À terre, sans jet de sauvegarde si elle est de taille Grande ou inférieure)." },
+            { name: "Résurrection de combat", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par étage, l'équipe peut relever un aventurier tombé à 0 PV avec la moitié de ses PV maximum et toutes ses ressources d'une action Bonus (n'importe quel aventurier peut utiliser cette action Bonus)." },
+            { name: "Vague de force", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Une fois par combat, chaque aventurier peut utiliser une action Bonus pour libérer une vague d'énergie : toutes les créatures hostiles à 15 ft subissent 3d8 dégâts de force et doivent réussir un jet de Force DD 8 + bonus de maîtrise ou être repoussées de 20 ft." },
+            { name: "Maîtrise absolue des sorts", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Chaque lanceur de sorts peut choisir un sort qu'il connaît de niveau 4 ou moins : il peut le lancer une fois par combat sans emplacement et sans composante." },
+            { name: "Instinct de prédateur", rarity: "Épique", cost: 4, unlockCost: 55, effect: "Au début de chaque combat, chaque aventurier désigne une créature comme sa Proie. Il a l'avantage à tous ses jets d'attaque, tests de Perception et de Survie contre elle, et lui inflige +1d8 dégâts supplémentaires par attaque." },
+
+            // Légendaires (Coût budget : 5 pt(s), déblocage Hub : 80 PI)
+            { name: "Accélération des pensées", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Au début de chaque étage, l'équipe désigne un aventurier. À chaque round, il joue un second tour complet (action, action Bonus, déplacement) immédiatement après son tour normal. Ses réactions ne sont pas renouvelées et les durées d'effets ne décomptent qu'une fois par round." },
+            { name: "Arrêt du temps", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par étage, l'équipe peut arrêter le temps : les aventuriers jouent deux rounds complets consécutifs avant que les autres créatures n'agissent. Les créatures hostiles sont Neutralisées pendant ce temps (les boss ne le sont que pendant le premier round)." },
+            { name: "Boucle temporelle", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par étage, après la fin du tour d'une créature, l'équipe peut l'annuler : PV, états, ressources et positions sont restaurés comme au début de ce tour, et la créature le rejoue." },
+            { name: "Ultra Instinct", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par round, chaque aventurier peut utiliser sa réaction pour faire manquer automatiquement une attaque qui le cible, ou réussir automatiquement un jet de sauvegarde sans le lancer, puis se déplacer de 10 ft sans provoquer d'attaque d'opportunité." },
+            { name: "Verdict inéluctable", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par étage, chaque aventurier peut décider qu'une créature échoue automatiquement à un jet de sauvegarde contre l'un de ses sorts ou capacités. Une créature dotée de Résistance légendaire peut en dépenser une charge pour réussir ; sinon l'échec est automatique." },
+            { name: "Coup unique", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par étage, chaque aventurier peut remplacer son action Attaquer par une attaque unique : si elle touche, une créature non-boss tombe à 0 PV ; un boss perd la moitié de ses PV actuels." },
+            { name: "Pierre de Puissance", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par étage, chaque aventurier peut maximiser tous les dés de dégâts d'une attaque ou d'un sort." },
+            { name: "Pierre de Réalité", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par combat, l'équipe peut remplacer le résultat d'un d20 de n'importe quelle créature par un 1 ou un 20 naturel (au choix). Un 20 obtenu ainsi sur l'attaque d'un aventurier est un coup critique ; une créature dotée de Résistance légendaire peut en dépenser une charge pour annuler un échec ainsi forcé." },
+            { name: "Premier sang", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Au premier round de chaque combat, toute attaque d'un aventurier qui touche est un coup critique." },
+            { name: "Compréhension absolue", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Au début de chaque combat, l'équipe connaît toutes les caractéristiques des créatures hostiles. Leurs immunités aux dégâts deviennent des résistances, et leurs résistances aux dégâts sont ignorées." },
+            { name: "Dominion", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Les combats faciles sont remportés automatiquement, avec leur récompense standard et sans dépense de ressources. Avant un combat moyen, l'équipe retire la moitié des créatures hostiles (arrondie au supérieur) de son choix." },
+            { name: "Domination mentale", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par étage, l'équipe prend le contrôle d'une créature hostile pendant 1 minute, sans jet de sauvegarde. Contre un boss, le contrôle ne dure qu'un round." },
+            { name: "Maître de l'ordre", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "À chaque round, les aventuriers jouent avant toutes les créatures hostiles, dans l'ordre choisi par l'équipe. Une fois par round, un aventurier peut interrompre le tour d'une créature hostile pour jouer immédiatement son propre tour." },
+            { name: "Lien d'âme", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par round, pendant son tour, un aventurier peut utiliser n'importe quelle action, action Bonus ou réaction d'un autre aventurier (sort, capacité de classe, attaque) comme s'il la possédait, en dépensant les ressources de ce dernier." },
+            { name: "Esprit multiple", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Chaque lanceur de sorts peut maintenir sa concentration sur deux sorts à la fois. Les jets de sauvegarde de Constitution pour la concentration sont effectués séparément, avec avantage." },
+            { name: "Magie sans fin", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Les sorts de niveau 1 à 3 lancés par les aventuriers ne consomment plus d'emplacement de sort (ils sont lancés à leur niveau de base)." },
+            { name: "Grimoire infini", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par étage, chaque lanceur de sorts peut lancer n'importe quel sort de niveau 5 ou moins, de n'importe quelle liste de sorts, sans emplacement ni composante coûteuse." },
+            { name: "Souhait", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par run, l'équipe lance le sort Souhait (Wish), sans composante et sans risque de perdre la capacité de le relancer." },
+            { name: "Âme inextinguible", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Tant qu'au moins un aventurier est conscient, aucun aventurier ne peut mourir : à 0 PV, il est inconscient et stable, même en cas de mort instantanée ou de dégâts massifs. À la fin du combat, chaque aventurier à 0 PV revient à 1 PV." },
+            { name: "Cendres du phénix", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par run, quand tous les aventuriers sont à 0 PV, l'équipe se relève immédiatement avec tous ses PV et sans aucun état préjudiciable. Chaque créature hostile subit 5 × le niveau moyen de l'équipe en dégâts radiants (moitié pour un boss)." },
+            { name: "Invulnérabilité relative", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Un aventurier ne peut pas perdre plus de 25 % de ses PV maximum lors d'un même round. Les dégâts excédentaires sont ignorés." },
+            { name: "Âme dévorante", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Quand un aventurier inflige des dégâts, il récupère des PV égaux à la moitié des dégâts infligés, dans la limite de 2 × son niveau par tour." },
+            { name: "Clones d'ombre", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Une fois par étage, un aventurier peut utiliser une action Bonus pour créer 3 clones. Chacun joue juste après lui, a 1 PV, utilise ses bonus d'attaque et de dégâts, ne lance pas de sorts et disparaît après 1 minute." },
+            { name: "Fortune absolue", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Chaque aventurier dispose de 5 points de Fortune par étage. Il peut en dépenser un après un jet de d20 d'allié, ou d'une créature hostile qui le cible, pour le relancer et choisir l'un des deux résultats." },
+            { name: "Maîtrise totale", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Chaque aventurier maîtrise toutes les compétences, toutes les armes et toutes les armures, et gagne l'Expertise dans trois compétences de son choix." },
+            { name: "Sanctuaire portatif", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Après chaque combat, chaque aventurier récupère tous ses PV, perd tous ses états préjudiciables et récupère les ressources d'un repos court." },
+            { name: "Boucle infinie", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Au début de chaque combat de boss, tous les passifs de l'équipe à utilisation « une fois par étage » (hors Légendaires) sont rechargés." },
+            { name: "Transcendance", rarity: "Légendaire", cost: 5, unlockCost: 80, effect: "Au début de chaque étage, chaque aventurier peut choisir de transcender : pendant cet étage, l'un de ses jets de sauvegarde de son choix est toujours considéré comme un succès (sans lancer le dé). Ce choix est fait individuellement et peut différer entre aventuriers." },
+        ];
+
+        // --- TOUTES LES QUÊTES OFFICIELLES ISSUES DE Quêtes.md / Codex des quêtes.md ---
+        const ALL_QUESTS = [
+            // ─── EXPLORATION ───
+            { id: "EXP-01", name: "Premiers pas dans les abîmes", type: "Exploration", diff: "Facile", reward: 5, desc: "Atteindre le troisième nœud du premier étage." },
+            { id: "EXP-02", name: "Marcheur des embranchements", type: "Exploration", diff: "Facile", reward: 5, desc: "Choisir et traverser au moins 3 bifurcations distinctes au cours du premier étage." },
+            { id: "EXP-03", name: "Gros dormeur", type: "Exploration", diff: "Facile", reward: 5, desc: "Interagir avec au moins 2 salles de repos différentes avant d'atteindre le boss de l'étage 2." },
+            { id: "EXP-04", name: "Pèlerinage des sentiers", type: "Exploration", diff: "Facile", reward: 5, desc: "Atteindre le nœud 6 du premier étage en suivant une ligne de progression continue." },
+            { id: "EXP-05", name: "Explorateur vigilant", type: "Exploration", diff: "Moyenne", reward: 10, desc: "Visiter 5 salles différentes aux étages 3 ou 4 sans subir de dégâts." },
+            { id: "EXP-06", name: "Cap sur le deuxième niveau", type: "Exploration", diff: "Moyenne", reward: 10, desc: "Vaincre le boss du premier étage et pénétrer dans le quatrième étage." },
+            { id: "EXP-07", name: "Arpenteur de bifurcations", type: "Exploration", diff: "Moyenne", reward: 10, desc: "Emprunter tous les types de salles intermédiaires (combat, repos, mystère, défis) au cours des six premiers étages." },
+            { id: "EXP-08", name: "Pèlerin des profondeurs", type: "Exploration", diff: "Difficile", reward: 15, desc: "Atteindre le septième étage du donjon." },
+            { id: "EXP-09", name: "Maître arpenteur", type: "Exploration", diff: "Difficile", reward: 15, desc: "Atteindre le neuvième étage du donjon." },
+            { id: "EXP-10", name: "L'abysse lointain", type: "Exploration", diff: "Difficile", reward: 15, desc: "Atteindre le dixième étage et affronter le boss final." },
+
+            // ─── COMBAT ───
+            { id: "COM-01", name: "Épreuve de force initiale", type: "Combat", diff: "Facile", reward: 5, desc: "Vaincre 3 salles de combat distinctes au premier étage sans utiliser de repos court." },
+            { id: "COM-02", name: "Chasse aux monstres", type: "Combat", diff: "Facile", reward: 5, desc: "Vaincre au moins 8 créatures hostiles au total au cours du premier étage." },
+            { id: "COM-03", name: "Premières armes de boss", type: "Combat", diff: "Facile", reward: 5, desc: "Vaincre le boss du premier étage." },
+            { id: "COM-04", name: "Frappe chirurgicale", type: "Combat", diff: "Moyenne", reward: 10, desc: "Vaincre un monstre d'élite aux étages 3 ou 4 en moins de 2 rounds de combat." },
+            { id: "COM-05", name: "Vigilance martiale", type: "Combat", diff: "Moyenne", reward: 10, desc: "Terminer un combat de salle aux étages 5 ou 6 sans qu'aucun personnage ne subisse d'attaque critique." },
+            { id: "COM-06", name: "Nettoyage méthodique", type: "Combat", diff: "Moyenne", reward: 10, desc: "Vaincre le boss de l'étage 6 après avoir traversé au moins 3 salles de combat sur ce même étage." },
+            { id: "COM-07", name: "Duel sans faille", type: "Combat", diff: "Difficile", reward: 15, desc: "Vaincre un boss d'étage (étages 7 à 9) sans qu'aucun personnage du groupe ne devienne gravement blessé (0 PV) pendant l'affrontement." },
+            { id: "COM-08", name: "Économie de guerre", type: "Combat", diff: "Difficile", reward: 15, desc: "Vaincre le boss de l'étage 8 en ayant conservé au moins un emplacement de sort de niveau 3 ou plus (ou une aptitude majeure de classe équivalente) non dépensé par chaque lanceur de sorts du groupe." },
+            { id: "COM-09", name: "Briseur d'élites", type: "Combat", diff: "Difficile", reward: 15, desc: "Vaincre 2 salles de combat classées comme « Difficiles » ou plus entre l'étage 7 et l'étage 9." },
+            { id: "COM-10", name: "Exécution sans appel", type: "Combat", diff: "Difficile", reward: 15, desc: "Vaincre le boss final de l'étage 10 en moins de 4 rounds de combat." },
+
+            // ─── DÉFIS DE PARCOURS ───
+            { id: "PAR-01", name: "Détour pacifique", type: "Défis", diff: "Facile", reward: 5, desc: "Atteindre le boss de l'étage en évitant au moins une salle de combat grâce à un choix de bifurcation alternative." },
+            { id: "PAR-02", name: "Marche forcée", type: "Défis", diff: "Facile", reward: 5, desc: "Atteindre l'étage 2 en n'ayant visité aucune salle mystère (uniquement des salles de combat, exploration ou repos)." },
+            { id: "PAR-03", name: "Trajet direct", type: "Défis", diff: "Facile", reward: 5, desc: "Atteindre le boss de l'étage en visitant exactement le nombre minimal de salles requis (parcours le plus court de 10 nœuds)." },
+            { id: "PAR-04", name: "Ascète des repos", type: "Défis", diff: "Moyenne", reward: 10, desc: "Atteindre le quatrième étage sans jamais être entré dans une salle de repos ou sanctuaire de récupération." },
+            { id: "PAR-05", name: "Évitement tactique", type: "Défis", diff: "Moyenne", reward: 10, desc: "Atteindre le boss de l'étage 5 sans entrer dans aucune salle de combat intermédiaire (uniquement salles de mystère, exploration ou repos)." },
+            { id: "PAR-06", name: "Sans filet ni raccourci", type: "Défis", diff: "Moyenne", reward: 10, desc: "Atteindre le septième étage sans utiliser de raccourci d'étage ou de portail de téléportation majeur." },
+            { id: "PAR-07", name: "Le chemin des braves", type: "Défis", diff: "Difficile", reward: 15, desc: "Atteindre le boss du septième étage sans avoir visité la moindre salle de repos depuis le début de la run." },
+            { id: "PAR-08", name: "Itinéraire de l'ombre", type: "Défis", diff: "Difficile", reward: 15, desc: "Atteindre l'étage 8 en n'ayant emprunté que des salles cataloguées comme mystérieuses ou dangereuses, sans jamais choisir de salle de repos." },
+            { id: "PAR-09", name: "L'odyssée pure", type: "Défis", diff: "Difficile", reward: 15, desc: "Atteindre l'étage 9 sans utiliser aucune salle de résurrection ou de sanctuaire de soins majeurs." },
+            { id: "PAR-10", name: "Course contre le destin", type: "Défis", diff: "Difficile", reward: 15, desc: "Atteindre le dixième étage en ayant totalisé au plus 55 salles explorées au total depuis le début de la run." },
+
+            // ─── BUTIN ET RÉCOMPENSES ───
+            { id: "BUT-01", name: "Collectionneur débutant", type: "Butin", diff: "Facile", reward: 5, desc: "Posséder au moins 3 artefacts différents simultanément dans l'inventaire du groupe." },
+            { id: "BUT-02", name: "Chasse au coffre", type: "Butin", diff: "Facile", reward: 5, desc: "Obtenir le contenu de 3 coffres ou récompenses de fin de salle mystère." },
+            { id: "BUT-03", name: "Magie de l'artisan", type: "Butin", diff: "Facile", reward: 5, desc: "Obtenir au moins un artefact de rareté « Peu commune » avant la fin de l'étage 3." },
+            { id: "BUT-04", name: "Mains pleines", type: "Butin", diff: "Moyenne", reward: 10, desc: "Posséder au moins 6 artefacts différents simultanément dans l'inventaire du groupe." },
+            { id: "BUT-05", name: "Relique remarquable", type: "Butin", diff: "Moyenne", reward: 10, desc: "Obtenir un artefact de rareté « Rare » au cours des sept premiers étages." },
+            { id: "BUT-06", name: "Spécialiste d'arsenal", type: "Butin", diff: "Moyenne", reward: 10, desc: "Équiper au moins 3 artefacts de catégorie « Offensif » ou « Magique » en même temps sur un même personnage." },
+            { id: "BUT-07", name: "La quête du légendaire", type: "Butin", diff: "Difficile", reward: 15, desc: "Trouver et lier un artefact de rareté « Légendaire » avant d'atteindre l'étage 9." },
+            { id: "BUT-08", name: "L'amas d'artefacts", type: "Butin", diff: "Difficile", reward: 15, desc: "Posséder un total cumulé d'au moins 10 artefacts actifs répartis dans le groupe au moment d'atteindre l'étage 8." },
+            { id: "BUT-09", name: "Trésor des abîmes", type: "Butin", diff: "Difficile", reward: 15, desc: "Obtenir au moins deux artefacts de rareté « Rare » ou supérieure entre l'étage 8 et l'étage 10." },
+            { id: "BUT-10", name: "Le coffre de l'étage 10", type: "Butin", diff: "Difficile", reward: 15, desc: "Récupérer le contenu d'un coffre ou d'une relique cachée au dixième étage juste avant le combat contre le boss final." },
+
+            // ─── DÉCOUVERTE ET NARRATION ───
+            { id: "NAR-01", name: "Premier indice", type: "Narration", diff: "Facile", reward: 5, desc: "Découvrir au moins un indice narratif ou une stèle ancienne dans le donjon." },
+            { id: "NAR-02", name: "L'oreille aux guichets", type: "Narration", diff: "Facile", reward: 5, desc: "Interagir avec succès lors d'une rencontre narrative ou d'un PNJ errant dans les trois premiers étages." },
+            { id: "NAR-03", name: "Esprit perspicace", type: "Narration", diff: "Facile", reward: 5, desc: "Réussir un test de caractéristique en Investigation ou Perspicacité d'une DD de 13 ou plus dans une salle narrative." },
+            { id: "NAR-04", name: "Archiviste des cryptes", type: "Narration", diff: "Moyenne", reward: 10, desc: "Découvrir au moins 3 indices textuels ou pages de grimoire ancien liés à l'histoire du donjon." },
+            { id: "NAR-05", name: "Langue de diplomate", type: "Narration", diff: "Moyenne", reward: 10, desc: "Résoudre pacifiquement ou par la négociation une rencontre ou une énigme dans une salle narrative entre les étages 5 et 7." },
+            { id: "NAR-06", name: "Secrets enfouis", type: "Narration", diff: "Moyenne", reward: 10, desc: "Identifier correctement un piège complexe ou un secret dissimulé grâce à un test d'Intelligence (Investigation) ou de Sagesse (Perception) réussi à l'étage 6 ou plus." },
+            { id: "NAR-07", name: "Le mystère des origines", type: "Narration", diff: "Difficile", reward: 15, desc: "Rassembler l'intégralité des indices narratifs majeurs d'un arc thématique du donjon (au moins 5 stèles ou fresques spécifiques examinées)." },
+            { id: "NAR-08", name: "Sage érudit", type: "Narration", diff: "Difficile", reward: 15, desc: "Réussir trois tests de compétences liés au savoir (Arcanes, Histoire, Nature ou Religion) avec un DD de 15 ou plus au cours de la même run." },
+            { id: "NAR-09", name: "Le pacte des profondeurs", type: "Narration", diff: "Difficile", reward: 15, desc: "Accomplir une interaction narrative complexe de niveau « Difficile » impliquant un choix moral ou un sacrifice de ressources sans déclencher de combat à l'étage 9." },
+            { id: "NAR-10", name: "Témoin de l'éternité", type: "Narration", diff: "Difficile", reward: 15, desc: "Découvrir la stèle finale cachée au dixième étage et réussir le test d'interaction associé avant le combat ultime." },
+
+            // ─── MAÎTRISE ET SURVIE ───
+            { id: "SUR-01", name: "Premiers soins", type: "Survie", diff: "Facile", reward: 5, desc: "Terminer un étage sans qu'aucun personnage ne devienne gravement blessé (0 PV)." },
+            { id: "SUR-02", name: "Économie de soins", type: "Survie", diff: "Facile", reward: 5, desc: "Terminer l'étage 3 en n'ayant dépensé aucun Dé de vie pendant les repos courts." },
+            { id: "SUR-03", name: "Rempart solide", type: "Survie", diff: "Facile", reward: 5, desc: "Atteindre l'étage 4 avec l'intégralité des membres du groupe disposant de plus de 75 % de leurs PV maximums." },
+            { id: "SUR-04", name: "Discipline de fer", type: "Survie", diff: "Moyenne", reward: 10, desc: "Terminer deux étages consécutifs (étages 4 et 5) sans qu'aucun personnage ne devienne gravement blessé (0 PV)." },
+            { id: "SUR-05", name: "Réserves intactes", type: "Survie", diff: "Moyenne", reward: 10, desc: "Atteindre l'étage 6 en ayant conservé au moins la moitié de ses Dés de vie totaux par personnage." },
+            { id: "SUR-06", name: "Résilience face aux ténèbres", type: "Survie", diff: "Moyenne", reward: 10, desc: "Vaincre le boss d'un étage après avoir relevé un personnage devenu gravement blessé (0 PV) (par un sort de soin, une potion ou une aptitude) pendant l'affrontement." },
+            { id: "SUR-07", name: "Intouchables", type: "Survie", diff: "Difficile", reward: 15, desc: "Terminer l'intégralité d'un étage avancé (étages 7, 8 ou 9 : toutes les salles traversées et le boss vaincu) sans qu'aucun personnage du groupe ne devienne gravement blessé (0 PV)." },
+            { id: "SUR-08", name: "L'art de la survie extrême", type: "Survie", diff: "Difficile", reward: 15, desc: "Atteindre l'étage 8 en n'ayant jamais subi l'état Inconscient ou ne devienne gravement blessé (0 PV) depuis le début de la run." },
+            { id: "SUR-09", name: "Marathon de l'endurance", type: "Survie", diff: "Difficile", reward: 15, desc: "Atteindre l'étage 9 sans qu'aucun membre du groupe n'ait jamais subi l'état Inconscient ou ne devienne gravement blessé (0 PV) depuis le début de la run." },
+            { id: "SUR-10", name: "Immortels des abîmes", type: "Survie", diff: "Difficile", reward: 15, desc: "Terminer l'ensemble de la run jusqu'à la victoire contre le boss final de l'étage 10 sans qu'aucun personnage ne devienne gravement blessé (0 PV)." }
+        ];
+
+        // --- COMPAGNONS ---
+        const COMPANIONS_DATA = [
+            { id: "scout", name: "L'Éclaireur (Bawky)", desc: "Corbeau intelligent révélant le type des salles situées plus loin dans le donjon.", maxLevel: 5 },
+            { id: "healer", name: "Le Soigneur (Néli)", desc: "Herboriste produisant un pool de soins commun (dés de d4) après chaque combat remporté.", maxLevel: 5 },
+            { id: "smith", name: "Le Forgeron (Morith)", desc: "Permet de sacrifier plusieurs artefacts de même rareté pour en obtenir un supérieur.", maxLevel: 5 },
+            { id: "tricks", name: "Le Tricheur (Kruglo)", desc: "Donne un pourcentage de chance de conserver une relance utilisée.", maxLevel: 5 }
+        ];
+
+        // --- AMÉLIORATIONS DU HUB ---
+        const HUB_UPGRADES_CONFIG = [
+            { key: 'startLevel', name: "Niveau de Départ", min: 1, max: 7, unit: "Niveau", costs: { 2: 35, 3: 60, 4: 90, 5: 130, 6: 175, 7: 225 } },
+            { key: 'xpBonus', name: "Bonus Permanent XP", min: 0, max: 5, unit: "XP", costs: { 1: 20, 2: 30, 3: 40, 4: 55, 5: 70 } },
+            { key: 'artifactSlots', name: "Emplacements d'Artefacts", min: 1, max: 6, unit: "Empl.", costs: { 2: 30, 3: 50, 4: 75, 5: 105, 6: 140 } },
+            { key: 'passiveBudget', name: "Budget de Passifs", min: 3, max: 10, unit: "Pts", costs: { 4: 20, 5: 30, 6: 45, 7: 60, 8: 80, 9: 105, 10: 130 } },
+            { key: 'potionsQty', name: "Potions de Soin (Qté)", min: 0, max: 4, unit: "Potions", costs: { 1: 25, 2: 40, 3: 60, 4: 85 } },
+            { key: 'potionsQuality', name: "Qualité des Potions", min: 1, max: 3, unit: "Qualité", labels: { 1: "Normales", 2: "Supérieures", 3: "Suprêmes" }, costs: { 2: 45, 3: 80 } },
+            { key: 'relaneQuests', name: "Relances de Quêtes", min: 0, max: 5, unit: "Relances", costs: { 1: 15, 2: 25, 3: 40, 4: 60, 5: 85 } },
+            { key: 'relaneLoot', name: "Relances de Butin", min: 0, max: 5, unit: "Relances", costs: { 1: 20, 2: 35, 3: 55, 4: 80, 5: 110 } },
+            { key: 'relaneBoss', name: "Relances de Boss", min: 0, max: 5, unit: "Relances", costs: { 1: 35, 2: 55, 3: 80, 4: 110, 5: 145 } },
+            { key: 'teleporterMax', name: "Téléporteur d'Étage", min: 1, max: 7, unit: "Étage max", costs: { 2: 40, 3: 65, 4: 95, 5: 130, 6: 170, 7: 215 } }
+        ];
+
+        // --- ÉTAT DE LA SAUVEGARDE ---
+        let hubState = {
+            coins: 50,
+            startLevel: 1,
+            xpBonus: 0,
+            artifactSlots: 1,
+            passiveBudget: 3,
+            potionsQty: 0,
+            potionsQuality: 1,
+            relaneQuests: 0,
+            relaneLoot: 0,
+            relaneBoss: 0,
+            teleporterMax: 1,
+            foundArtifacts: [],
+            unlockedArtifacts: [],
+            foundPassives: [],
+            purchasedPassives: [],
+            discoveredCompanions: [],
+            activeRunQuests: [], // Les 5 quêtes de la run en cours
+            companions: { scout: 1, healer: 1, smith: 1, tricks: 1 },
+            selectedArtifacts: [],
+            selectedPassives: []
+        };
+
+        function loadState() {
+            const saved = localStorage.getItem('infernity_state_v5');
+            if (saved) {
+                try {
+                    hubState = JSON.parse(saved);
+                } catch(e) { console.error("Erreur chargement save", e); }
+            }
+            // Si aucune quête active de run n'est définie, en tirer par défaut
+            if (!hubState.activeRunQuests || hubState.activeRunQuests.length === 0) {
+                mjRollRunQuestsInternal();
+            }
+            applyHubStateToDOM();
+        }
+
+        function saveHubState() {
+            localStorage.setItem('infernity_state_v5', JSON.stringify(hubState));
+            applyHubStateToDOM();
+        }
+
+        function applyHubStateToDOM() {
+            document.getElementById('global-coins-display').innerText = hubState.coins;
+            document.getElementById('mj-coins-value').innerText = hubState.coins + " PI";
+
+            renderHubClientView();
+            renderHubMjView();
+            renderLoadoutSelectors();
+            renderCodex();
+            renderCompanions();
+            renderActiveQuests();
+        }
+
+        // --- VUE CLIENT HUB ---
+        function renderHubClientView() {
+            const container = document.getElementById('hub-upgrades-grid');
+            container.innerHTML = '';
+
+            HUB_UPGRADES_CONFIG.forEach(upg => {
+                const currentVal = hubState[upg.key];
+                const nextVal = currentVal + 1;
+                const nextCost = upg.costs[nextVal] ? upg.costs[nextVal] : null;
+                const displayVal = upg.labels ? upg.labels[currentVal] : (currentVal + ' ' + upg.unit);
+
+                const card = document.createElement('div');
+                card.className = "bg-infernal-900/60 border border-infernal-700 rounded-xl p-4 flex flex-col justify-between";
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-white text-sm">${upg.name}</h3>
+                            <span class="text-xs bg-red-900/60 text-red-300 px-2 py-0.5 rounded border border-red-700/50">${displayVal}</span>
+                        </div>
+                        <p class="text-xs text-stone-400 mb-3">Amélioration permanente du Hub.</p>
+                    </div>
+                    <div class="flex justify-between items-center text-xs pt-2 border-t border-infernal-800">
+                        <span class="text-stone-400">Coût suivant :</span>
+                        <span class="font-bold ${nextCost ? 'text-amber-400' : 'text-stone-500'}">${nextCost ? nextCost + ' PI' : 'Max atteint'}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- VUE MJ HUB ---
+        function renderHubMjView() {
+            const container = document.getElementById('mj-hub-controls');
+            if (!container) return;
+            container.innerHTML = '';
+
+            HUB_UPGRADES_CONFIG.forEach(upg => {
+                const currentVal = hubState[upg.key];
+                const nextVal = currentVal + 1;
+                const nextCost = upg.costs[nextVal];
+                const displayVal = upg.labels ? upg.labels[currentVal] : currentVal;
+
+                const card = document.createElement('div');
+                card.className = "bg-infernal-800 border border-infernal-700 rounded-xl p-3 flex flex-col justify-between text-xs";
+                card.innerHTML = `
+                    <div>
+                        <div class="font-bold text-white mb-1">${upg.name}</div>
+                        <div class="text-stone-400 mb-2">Valeur actuelle : <span class="text-red-400 font-bold">${displayVal}</span></div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="mjDecreaseUpgrade('${upg.key}', ${currentVal}, ${upg.min})" class="flex-1 bg-red-950 hover:bg-red-900 text-red-200 py-1.5 rounded font-medium ${currentVal <= upg.min ? 'opacity-50 cursor-not-allowed' : ''}">
+                            - (Rembourser)
+                        </button>
+                        <button onclick="mjIncreaseUpgrade('${upg.key}', ${currentVal}, ${upg.max}, ${nextCost})" class="flex-1 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 py-1.5 rounded font-medium ${!nextCost || hubState.coins < nextCost ? 'opacity-50 cursor-not-allowed' : ''}">
+                            + (${nextCost ? nextCost + ' PI' : 'Max'})
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function adjustMjCoins(amount) {
+            hubState.coins = Math.max(0, hubState.coins + amount);
+            saveHubState();
+        }
+
+        function mjIncreaseUpgrade(key, current, max, cost) {
+            if (current >= max || !cost) return;
+            if (hubState.coins < cost) { alert("PI insuffisantes !"); return; }
+            hubState.coins -= cost;
+            hubState[key] += 1;
+            saveHubState();
+        }
+
+        function mjDecreaseUpgrade(key, current, min) {
+            if (current <= min) return;
+            const upg = HUB_UPGRADES_CONFIG.find(u => u.key === key);
+            const refundCost = upg.costs[current];
+            if (refundCost) hubState.coins += refundCost;
+            hubState[key] -= 1;
+            saveHubState();
+        }
+
+        // --- TIREAGE DES 5 QUÊTES DE RUN (Règles: 1 Facile, 1 Moyenne, 1 Difficile + 2 aléatoires) ---
+        function mjRollRunQuestsInternal() {
+            const faciles = ALL_QUESTS.filter(q => q.diff === 'Facile');
+            const moyennes = ALL_QUESTS.filter(q => q.diff === 'Moyenne');
+            const difficiles = ALL_QUESTS.filter(q => q.diff === 'Difficile');
+
+            const qFacile = faciles[Math.floor(Math.random() * faciles.length)];
+            const qMoyenne = moyennes[Math.floor(Math.random() * moyennes.length)];
+            const qDifficile = difficiles[Math.floor(Math.random() * difficiles.length)];
+
+            // Les 2 autres aléatoires parmi toutes
+            const remaining = ALL_QUESTS.filter(q => q.id !== qFacile.id && q.id !== qMoyenne.id && q.id !== qDifficile.id);
+            // Mélanger
+            remaining.sort(() => Math.random() - 0.5);
+
+            hubState.activeRunQuests = [qFacile, qMoyenne, qDifficile, remaining[0], remaining[1]];
+        }
+
+        function mjRollRunQuests() {
+            mjRollRunQuestsInternal();
+            saveHubState();
+            alert("Les 5 quêtes de la run ont été tirées avec succès (1 Facile, 1 Moyenne, 1 Difficile + 2 aléatoires) !");
+        }
+
+        function renderActiveQuests() {
+            const container = document.getElementById('active-quests-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const quests = hubState.activeRunQuests || [];
+            if (quests.length === 0) {
+                container.innerHTML = `<div class="text-stone-500 text-xs italic text-center py-6 col-span-2">Aucune quête active pour cette run. Le MJ doit en effectuer le tirage depuis ses outils.</div>`;
+                return;
+            }
+
+            quests.forEach(q => {
+                const card = document.createElement('div');
+                card.className = "bg-infernal-900/90 border border-infernal-700 rounded-xl p-4 flex flex-col justify-between";
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-mono text-amber-400 font-bold">${q.id} — ${q.name}</span>
+                            <span class="text-[10px] bg-amber-950 text-amber-300 px-2 py-0.5 rounded border border-amber-700/50">+${q.reward} PI</span>
+                        </div>
+                        <p class="text-xs text-stone-300 mb-3">${q.desc}</p>
+                    </div>
+                    <div class="flex justify-between items-center text-[11px] text-stone-500 pt-2 border-t border-infernal-800">
+                        <span>Type : ${q.type}</span>
+                        <span class="text-red-400 font-bold">Difficulté : ${q.diff}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            // Bouton MJ dans l'onglet quêtes s'il est débloqué
+            const btnContainer = document.getElementById('mj-quest-draw-btn-container');
+            if (btnContainer) {
+                btnContainer.innerHTML = mjUnlocked ? `
+                    <button onclick="mjRollRunQuests()" class="bg-amber-700 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-dice"></i> Retirer les 5 quêtes
+                    </button>
+                ` : '';
+            }
+        }
+
+        // --- COMPAGNONS ---
+        function renderCompanions() {
+            const container = document.getElementById('companions-grid');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const compCosts = { 2: 25, 3: 50, 4: 85, 5: 125 };
+
+            COMPANIONS_DATA.forEach(comp => {
+                const isDiscovered = hubState.discoveredCompanions.includes(comp.id);
+                const lvl = hubState.companions[comp.id] || 1;
+                const nextCost = compCosts[lvl + 1];
+
+                const card = document.createElement('div');
+                card.className = `border rounded-xl p-5 flex flex-col justify-between ${isDiscovered ? 'bg-infernal-900 border-infernal-700' : 'bg-infernal-900/40 border-infernal-800'}`;
+
+                if (!isDiscovered && !mjUnlocked) {
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-bold text-stone-500 text-base">??? (Compagnon Inconnu)</h3>
+                            </div>
+                            <p class="text-xs text-stone-600 italic mb-4">Ce compagnon n'a pas encore été découvert au cours d'une run.</p>
+                        </div>
+                        <div class="text-[11px] text-stone-600 pt-2 border-t border-infernal-800">Statut : Non rencontré</div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-bold text-white text-base">${comp.name}</h3>
+                                <span class="text-xs bg-amber-950 text-amber-300 px-2 py-0.5 rounded border border-amber-700/50">${isDiscovered ? 'Camp Niv. ' + lvl : 'Bloqué (Non découvert)'}</span>
+                            </div>
+                            <p class="text-xs text-stone-300 mb-4">${comp.desc}</p>
+                        </div>
+                        <div class="pt-3 border-t border-infernal-800 flex justify-between items-center text-xs">
+                            <span class="text-stone-400">${isDiscovered ? 'Amélioration camp : <strong class="text-amber-400">' + (nextCost ? nextCost + ' PI' : 'Max') + '</strong>' : 'En attente de découverte'}</span>
+                            ${mjUnlocked ? `
+                                <div class="flex gap-2 items-center">
+                                    <button onclick="mjToggleCompanion('${comp.id}')" class="px-2 py-1 rounded text-[10px] font-bold ${isDiscovered ? 'bg-amber-900 text-amber-200' : 'bg-emerald-900 text-emerald-200'}">
+                                        ${isDiscovered ? 'Masquer' : 'Découvrir'}
+                                    </button>
+                                    ${isDiscovered ? `
+                                        <button onclick="mjUpdateCompanion('${comp.id}', -1)" class="bg-red-950 text-red-200 px-2 py-1 rounded ${lvl <= 1 ? 'opacity-50' : ''}">-</button>
+                                        <button onclick="mjUpdateCompanion('${comp.id}', 1)" class="bg-emerald-950 text-emerald-300 px-2 py-1 rounded ${!nextCost || hubState.coins < nextCost ? 'opacity-50' : ''}">+</button>
+                                    ` : ''}
+                                </div>
+                            ` : '<span class="text-stone-500 italic">Vue Joueur</span>'}
+                        </div>
+                    `;
+                }
+                container.appendChild(card);
+            });
+        }
+
+        function mjToggleCompanion(id) {
+            const idx = hubState.discoveredCompanions.indexOf(id);
+            if (idx > -1) hubState.discoveredCompanions.splice(idx, 1);
+            else hubState.discoveredCompanions.push(id);
+            saveHubState();
+        }
+
+        function mjUpdateCompanion(id, delta) {
+            let lvl = hubState.companions[id] || 1;
+            const compCosts = { 2: 25, 3: 50, 4: 85, 5: 125 };
+            if (delta > 0 && lvl < 5) {
+                const cost = compCosts[lvl + 1];
+                if (hubState.coins < cost) { alert("PI insuffisantes !"); return; }
+                hubState.coins -= cost;
+                hubState.companions[id] = lvl + 1;
+            } else if (delta < 0 && lvl > 1) {
+                hubState.coins += compCosts[lvl];
+                hubState.companions[id] = lvl - 1;
+            }
+            saveHubState();
+        }
+
+        // --- CODEX ---
+        function renderCodex() {
+            const type = document.getElementById('codex-type-filter').value;
+            const rarity = document.getElementById('codex-rarity-filter').value;
+            const container = document.getElementById('codex-container');
+            container.innerHTML = '';
+
+            const list = type === 'artifacts' ? ALL_ARTIFACTS : ALL_PASSIVES;
+            const filtered = list.filter(item => rarity === 'all' || item.rarity === rarity);
+
+            filtered.forEach(item => {
+                const isArtifact = type === 'artifacts';
+                const isFound = isArtifact ? hubState.foundArtifacts.includes(item.name) : hubState.foundPassives.includes(item.name);
+                const isUnlockedOrPurchased = isArtifact ? hubState.unlockedArtifacts.includes(item.name) : hubState.purchasedPassives.includes(item.name);
+
+                const card = document.createElement('div');
+                card.className = `border rounded-xl p-4 flex flex-col justify-between ${isFound || isUnlockedOrPurchased ? 'bg-infernal-900/90 border-infernal-700' : 'bg-infernal-900/40 border-infernal-800 opacity-75'}`;
+
+                if (!isFound && !isUnlockedOrPurchased && !mjUnlocked) {
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-bold text-stone-500 text-sm">??? (Inconnu)</h4>
+                                <span class="text-[10px] px-2 py-0.5 rounded border ${getRarityBadgeStyle(item.rarity)}">${item.rarity}</span>
+                            </div>
+                            <p class="text-xs text-stone-600 italic mb-3">Jamais découvert au cours des expéditions.</p>
+                        </div>
+                        <div class="text-[11px] text-stone-600 pt-2 border-t border-infernal-800">Statut : Bloqué (???)</div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-bold text-white text-sm">${item.name}</h4>
+                                <span class="text-[10px] px-2 py-0.5 rounded border ${getRarityBadgeStyle(item.rarity)}">${item.rarity}</span>
+                            </div>
+                            <p class="text-xs text-stone-300 mb-3">${item.effect}</p>
+                        </div>
+                        <div class="pt-2 border-t border-infernal-800 flex justify-between items-center text-[11px]">
+                            <span class="text-stone-400">${isArtifact ? 'Artefact' : ('Coût budget : ' + item.cost + ' pt(s)')}</span>
+                            ${mjUnlocked ? renderMjCodexAction(item, isArtifact, isFound, isUnlockedOrPurchased) : renderClientCodexStatus(isArtifact, isFound, isUnlockedOrPurchased)}
+                        </div>
+                    `;
+                }
+                container.appendChild(card);
+            });
+        }
+
+        function renderClientCodexStatus(isArtifact, isFound, isUnlockedOrPurchased) {
+            if (isArtifact) {
+                if (isUnlockedOrPurchased) return `<span class="text-emerald-400 font-bold">Débloqué (Sacrifié)</span>`;
+                if (isFound) return `<span class="text-amber-400 font-medium">Trouvé en run (Non sacrifié)</span>`;
+            } else {
+                if (isUnlockedOrPurchased) return `<span class="text-emerald-400 font-bold">Acheté Hub</span>`;
+                if (isFound) return `<span class="text-amber-400 font-medium">Découvert (Non acheté)</span>`;
+            }
+            return `<span class="text-stone-500">Inconnu</span>`;
+        }
+
+        function renderMjCodexAction(item, isArtifact, isFound, isUnlockedOrPurchased) {
+            const safeName = item.name.replace(/'/g, "\\'");
+            if (isArtifact) {
+                return `
+                    <div class="flex gap-1 items-center">
+                        <button onclick="mjToggleFoundArtifact('${safeName}')" class="px-2 py-1 rounded text-[10px] font-bold ${isFound ? 'bg-amber-900 text-amber-200' : 'bg-stone-700 text-stone-300'}">
+                            ${isFound ? 'Trouvé ✅' : 'Marquer Trouvé'}
+                        </button>
+                        <button onclick="mjToggleArtifact('${safeName}')" class="px-2 py-1 rounded text-[10px] font-bold ${isUnlockedOrPurchased ? 'bg-emerald-900 text-emerald-200' : 'bg-stone-800 text-stone-400'}">
+                            ${isUnlockedOrPurchased ? 'Sacrifié (Débloqué) ✅' : 'Valider Sacrifice'}
+                        </button>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="flex gap-1 items-center">
+                        <button onclick="mjToggleFoundPassive('${safeName}')" class="px-2 py-1 rounded text-[10px] font-bold ${isFound ? 'bg-amber-900 text-amber-200' : 'bg-stone-700 text-stone-300'}">
+                            ${isFound ? 'Découvert ✅' : 'Marquer Découvert'}
+                        </button>
+                        <button onclick="mjBuyPassive('${safeName}', ${item.unlockCost})" class="px-2 py-1 rounded text-[10px] font-bold ${isUnlockedOrPurchased ? 'bg-emerald-900 text-emerald-200' : 'bg-stone-800 text-stone-400'}">
+                            ${isUnlockedOrPurchased ? 'Acheté Hub ✅' : 'Acheter (' + item.unlockCost + ' PI)'}
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function mjToggleFoundArtifact(name) {
+            const idx = hubState.foundArtifacts.indexOf(name);
+            if (idx > -1) hubState.foundArtifacts.splice(idx, 1);
+            else hubState.foundArtifacts.push(name);
+            saveHubState();
+        }
+
+        function mjToggleArtifact(name) {
+            const idx = hubState.unlockedArtifacts.indexOf(name);
+            if (idx > -1) {
+                hubState.unlockedArtifacts.splice(idx, 1);
+            } else {
+                hubState.unlockedArtifacts.push(name);
+                if (!hubState.foundArtifacts.includes(name)) hubState.foundArtifacts.push(name);
+            }
+            saveHubState();
+        }
+
+        function mjToggleFoundPassive(name) {
+            const idx = hubState.foundPassives.indexOf(name);
+            if (idx > -1) hubState.foundPassives.splice(idx, 1);
+            else hubState.foundPassives.push(name);
+            saveHubState();
+        }
+
+        function mjBuyPassive(name, cost) {
+            const isPurchased = hubState.purchasedPassives.includes(name);
+            if (isPurchased) {
+                hubState.coins += cost;
+                hubState.purchasedPassives = hubState.purchasedPassives.filter(p => p !== name);
+            } else {
+                if (hubState.coins < cost) { alert("PI insuffisantes !"); return; }
+                hubState.coins -= cost;
+                hubState.purchasedPassives.push(name);
+                if (!hubState.foundPassives.includes(name)) hubState.foundPassives.push(name);
+            }
+            saveHubState();
+        }
+
+        // --- SIMULATEUR DE LOADOUT ---
+        function renderLoadoutSelectors() {
+            const artContainer = document.getElementById('loadout-artifacts-list');
+            artContainer.innerHTML = '';
+            let availableArts = ALL_ARTIFACTS.filter(a => hubState.unlockedArtifacts.includes(a.name));
+            if (availableArts.length === 0) {
+                artContainer.innerHTML = `<div class="text-stone-500 text-xs italic text-center py-2">Aucun artefact débloqué par sacrifice permanent.</div>`;
+            } else {
+                availableArts.forEach(art => {
+                    const isSelected = hubState.selectedArtifacts.includes(art.name);
+                    const div = document.createElement('div');
+                    div.className = `p-2.5 rounded-lg border flex justify-between items-center text-xs ${isSelected ? 'bg-infernal-700/60 border-purple-500/50 text-white' : 'bg-infernal-900 border-infernal-700 text-stone-400'}`;
+                    div.innerHTML = `
+                        <div>
+                            <span class="font-bold">${art.name}</span> <span class="text-[10px] text-purple-300">(${art.rarity})</span>
+                            <p class="text-[11px] text-stone-300 mt-0.5">${art.effect}</p>
+                        </div>
+                        <button onclick="toggleArtifact('${art.name.replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded text-xs font-semibold ${isSelected ? 'bg-red-900 hover:bg-red-800 text-white' : 'bg-infernal-600 hover:bg-infernal-500 text-stone-200'}">
+                            ${isSelected ? 'Retirer' : 'Équiper'}
+                        </button>
+                    `;
+                    artContainer.appendChild(div);
+                });
+            }
+            document.getElementById('selected-artifacts-count').innerText = hubState.selectedArtifacts.length;
+            document.getElementById('max-artifact-slots-label').innerText = hubState.artifactSlots;
+
+            const passContainer = document.getElementById('loadout-passives-list');
+            passContainer.innerHTML = '';
+            let currentCost = 0;
+            hubState.selectedPassives.forEach(pName => {
+                const p = ALL_PASSIVES.find(item => item.name === pName);
+                if (p) currentCost += p.cost;
+            });
+
+            let availablePassives = ALL_PASSIVES.filter(p => hubState.purchasedPassives.includes(p.name));
+            if (availablePassives.length === 0) {
+                passContainer.innerHTML = `<div class="text-stone-500 text-xs italic text-center py-2">Aucun passif acheté définitivement au Hub.</div>`;
+            } else {
+                availablePassives.forEach(pas => {
+                    const isSelected = hubState.selectedPassives.includes(pas.name);
+                    const div = document.createElement('div');
+                    div.className = `p-2.5 rounded-lg border flex justify-between items-center text-xs ${isSelected ? 'bg-infernal-700/60 border-blue-500/50 text-white' : 'bg-infernal-900 border-infernal-700 text-stone-400'}`;
+                    div.innerHTML = `
+                        <div>
+                            <span class="font-bold">${pas.name}</span> <span class="text-[10px] text-blue-300">(${pas.rarity} - ${pas.cost} pt${pas.cost>1?'s':''})</span>
+                            <p class="text-[11px] text-stone-300 mt-0.5">${pas.effect}</p>
+                        </div>
+                        <button onclick="togglePassive('${pas.name.replace(/'/g, "\\'")}', ${pas.cost})" class="px-2.5 py-1 rounded text-xs font-semibold ${isSelected ? 'bg-red-900 hover:bg-red-800 text-white' : 'bg-infernal-600 hover:bg-infernal-500 text-stone-200'}">
+                            ${isSelected ? 'Retirer' : 'Activer'}
+                        </button>
+                    `;
+                    passContainer.appendChild(div);
+                });
+            }
+            document.getElementById('selected-passives-cost').innerText = currentCost;
+            document.getElementById('max-passive-budget-label').innerText = hubState.passiveBudget;
+        }
+
+        function toggleArtifact(name) {
+            const idx = hubState.selectedArtifacts.indexOf(name);
+            if (idx > -1) {
+                hubState.selectedArtifacts.splice(idx, 1);
+            } else {
+                if (hubState.selectedArtifacts.length >= hubState.artifactSlots) {
+                    alert(`Limite atteinte ! Votre Hub autorise seulement ${hubState.artifactSlots} emplacement(s).`);
+                    return;
+                }
+                hubState.selectedArtifacts.push(name);
+            }
+            saveHubState();
+        }
+
+        function togglePassive(name, cost) {
+            const idx = hubState.selectedPassives.indexOf(name);
+            if (idx > -1) {
+                hubState.selectedPassives.splice(idx, 1);
+            } else {
+                let currentCost = 0;
+                hubState.selectedPassives.forEach(pName => {
+                    const p = ALL_PASSIVES.find(item => item.name === pName);
+                    if (p) currentCost += p.cost;
+                });
+                if (currentCost + cost > hubState.passiveBudget) {
+                    alert(`Budget insuffisant ! Votre budget de passifs est de ${hubState.passiveBudget} points.`);
+                    return;
+                }
+                hubState.selectedPassives.push(name);
+            }
+            saveHubState();
+        }
+
+        // --- NAVIGATION & AUTH MJ ---
+        let mjUnlocked = false;
+
+        function switchTab(tabId) {
+            if (tabId === 'mj' && !mjUnlocked) {
+                document.getElementById('mj-auth-modal').classList.remove('hidden');
+                return;
+            }
+
+            ['hub', 'codex', 'companions', 'quests', 'mj'].forEach(id => {
+                document.getElementById(`tab-${id}`).classList.add('hidden');
+                document.getElementById(`btn-${id}`).classList.remove('bg-red-800', 'text-white', 'shadow');
+                document.getElementById(`btn-${id}`).classList.add('text-stone-400', 'hover:text-white', 'hover:bg-infernal-700');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`btn-${tabId}`).classList.add('bg-red-800', 'text-white', 'shadow');
+            document.getElementById(`btn-${tabId}`).classList.remove('text-stone-400', 'hover:text-white', 'hover:bg-infernal-700');
+
+            if (tabId === 'codex') renderCodex();
+            if (tabId === 'companions') renderCompanions();
+            if (tabId === 'quests') renderActiveQuests();
+            if (tabId === 'mj') renderHubMjView();
+        }
+
+        function verifyMjPin(e) {
+            e.preventDefault();
+            const pin = document.getElementById('mj-pin-input').value;
+            if (pin === "MJ2024" || pin === "infernity") {
+                mjUnlocked = true;
+                document.getElementById('mj-auth-modal').classList.add('hidden');
+                document.getElementById('mj-lock-icon').innerHTML = '<i class="fa-solid fa-unlock text-emerald-400"></i>';
+                switchTab('mj');
+            } else {
+                document.getElementById('mj-auth-error').classList.remove('hidden');
+            }
+        }
+
+        function closeMjAuth() { document.getElementById('mj-auth-modal').classList.add('hidden'); }
+        function lockMj() { mjUnlocked = false; document.getElementById('mj-lock-icon').innerHTML = '<i class="fa-solid fa-lock"></i>'; switchTab('hub'); }
+
+        // --- EXPORT / IMPORT SAUVEGARDE ---
+        function exportSave() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(hubState, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "infernity_save.json");
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        function importSave(event) {
+            const fileReader = new FileReader();
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = (e) => {
+                    try {
+                        hubState = JSON.parse(e.target.result);
+                        saveHubState();
+                        alert("Sauvegarde importée avec succès !");
+                    } catch (err) { alert("Erreur import JSON."); }
+                };
+            }
+        }
+
+        // --- DONJON ---
+        const ROOM_TYPES = ["Combat (Facile)", "Combat (Moyen)", "Combat (Difficile)", "Mystère", "Défi", "Repos / Sanctuaire", "Salle Spéciale"];
+        function generateDungeon() {
+            const floor = parseInt(document.getElementById('dungeon-floor').value);
+            const output = document.getElementById('dungeon-output');
+            output.innerHTML = '';
+            let html = `<div class="text-xs font-bold text-amber-400 mb-3 pb-2 border-b border-infernal-700">Parcours Généré — Étage ${floor} (10 Nœuds)</div><div class="space-y-2">`;
+            for (let i = 1; i <= 9; i++) {
+                const roomsCount = Math.floor(Math.random() * 2) + 2;
+                html += `<div class="flex items-center gap-3 bg-infernal-900 p-2.5 rounded-lg border border-infernal-700 text-xs">`;
+                html += `<span class="font-bold text-red-400 w-16">Nœud ${i} :</span><div class="flex flex-wrap gap-2 flex-1">`;
+                for (let r = 0; r < roomsCount; r++) {
+                    const roomType = ROOM_TYPES[Math.floor(Math.random() * ROOM_TYPES.length)];
+                    html += `<span class="bg-infernal-800 border border-infernal-600 px-2.5 py-1 rounded text-stone-200">📍 ${roomType}</span>`;
+                }
+                html += `</div></div>`;
+            }
+            html += `<div class="flex items-center gap-3 bg-red-950/60 p-3 rounded-lg border border-red-700 text-xs mt-2"><span class="font-bold text-red-300 w-16">Nœud 10 :</span><div class="text-red-200 font-bold">👑 Salle du Boss d'Étage</div></div></div>`;
+            output.innerHTML = html;
+        }
+
+        function rollLoot() {
+            const diff = document.getElementById('loot-difficulty').value;
+            const rand = Math.random() * 100;
+            let rarity = "Commun";
+            if (diff === 'Boss') rarity = rand < 30 ? "Légendaire" : (rand < 60 ? "Épique" : "Rare");
+            else if (diff === 'Difficile') rarity = rand < 10 ? "Épique" : (rand < 35 ? "Rare" : (rand < 70 ? "Peu commun" : "Commun"));
+            else rarity = rand < 15 ? "Rare" : (rand < 45 ? "Peu commun" : "Commun");
+
+            const pool = ALL_ARTIFACTS.filter(a => a.rarity === rarity);
+            const chosen = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : ALL_ARTIFACTS[0];
+
+            document.getElementById('loot-result').innerHTML = `
+                <span class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">${rarity}</span>
+                <h4 class="font-black text-white text-sm mb-1">${chosen.name}</h4>
+                <p class="text-xs text-stone-300 text-center mb-2">${chosen.effect}</p>
+                <span class="text-[10px] text-stone-500 italic">Tirage réussi (${diff})</span>
+            `;
+        }
+
+        function getRarityBadgeStyle(rarity) {
+            switch(rarity) {
+                case 'Commun': return 'bg-stone-800 text-stone-300 border-stone-600';
+                case 'Peu commun': return 'bg-emerald-950 text-emerald-300 border-emerald-700';
+                case 'Rare': return 'bg-blue-950 text-blue-300 border-blue-700';
+                case 'Épique': return 'bg-purple-950 text-purple-300 border-purple-700';
+                case 'Légendaire': return 'bg-amber-950 text-amber-300 border-amber-700';
+                default: return 'bg-stone-800 text-stone-300 border-stone-600';
+            }
+        }
+
+        window.onload = function() { loadState(); };
+    </script>
+</body>
+</html>
